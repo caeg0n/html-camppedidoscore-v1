@@ -1,0 +1,241 @@
+:root {
+    --nav-bg: #0b1656;
+    --nav-text: #ffffff;
+    --filter-bg: #f5dfc3;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+    --brand-green: #53a551;
+    --bg-color: #f8f9fa;
+    --card-bg: #ffffff;
+    --border-color: #e5e7eb;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 70px;
+    /* Space for bottom nav */
+}
+
+/* Header */
+.top-nav {
+    background-color: var(--nav-bg);
+    color: var(--nav-text);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.logo svg {
+    color: #4285F4;
+    /* Google Maps-like blue Pin */
+    margin-right: 2px;
+}
+
+.logo-bizbook {
+    color: var(--nav-text);
+}
+
+.logo-directory {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 400;
+}
+
+/* Filter Bar */
+.filter-bar {
+    background-color: var(--filter-bg);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.filter-icon {
+    margin-top: 2px;
+}
+
+/* Main Content */
+.content-area {
+    padding: 24px 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.results-header h2 {
+    font-size: 1.4rem;
+    font-weight: 400;
+    margin-bottom: 16px;
+}
+
+.results-header strong {
+    font-weight: 700;
+}
+
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.tag {
+    background-color: #87c570;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tag-close {
+    font-size: 1.1rem;
+    cursor: pointer;
+    font-weight: 400;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* Cards */
+.org-list {
+    display: grid;
+    gap: 24px;
+}
+
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.card-img-container {
+    width: 100%;
+    height: 240px;
+    overflow: hidden;
+    background-color: #f0f0f0;
+}
+
+.card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.card:hover .card-img {
+    transform: scale(1.05);
+}
+
+.card-content {
+    padding: 20px;
+    text-align: center;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.btn-buy {
+    display: block;
+    width: 100%;
+    background-color: var(--brand-green);
+    color: white;
+    text-transform: uppercase;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 16px;
+    border-radius: 0 0 12px 12px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-buy:hover {
+    background-color: #458b43;
+}
+
+/* Bottom Nav */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 10px 12px;
+    z-index: 100;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    color: #8898aa;
+    font-size: 0.65rem;
+    font-weight: 700;
+    /* transition: color 0.1s; */
+}
+
+.nav-item svg {
+    width: 24px;
+    height: 24px;
+}
+
+.nav-item.active {
+    color: var(--nav-bg);
+}
+
+.nav-item:hover {
+    color: var(--brand-green);
+}
+
+@media (max-width: 600px) {
+    .card-img-container {
+        height: 200px;
+    }
+}
