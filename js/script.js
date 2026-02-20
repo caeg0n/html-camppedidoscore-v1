@@ -190,7 +190,7 @@ function renderOrganizations() {
                     </div>
                     
                     <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
-                        <button class="text-slate-400 hover:text-red-500 transition-colors">
+                        <button class="text-slate-400 hover:text-red-500 transition-colors" onclick="const icon = this.querySelector('span'); if (icon.textContent === 'favorite_border') { icon.textContent = 'favorite'; icon.classList.add('filled'); this.classList.remove('text-slate-400'); this.classList.add('text-red-500'); } else { icon.textContent = 'favorite_border'; icon.classList.remove('filled'); this.classList.remove('text-red-500'); this.classList.add('text-slate-400'); }">
                             <span class="material-symbols-outlined">favorite_border</span>
                         </button>
                         <a class="inline-flex items-center gap-2 bg-primary hover:bg-sky-500 text-white text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md shadow-primary/20 hover:shadow-primary/40" href="${org.url}" rel="noopener">
