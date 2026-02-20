@@ -1,6 +1,7 @@
 let allOrganizations = [];
 let allCategories = [];
 let currentCategory = 'all';
+let activeTags = [];
 
 async function init() {
     try {
@@ -12,6 +13,7 @@ async function init() {
         allOrganizations = data.organizations || [];
 
         renderCategories();
+        renderTags();
         renderOrganizations();
     } catch (e) {
         console.error("Failed to load CMS data:", e);
@@ -49,6 +51,7 @@ function renderCategories() {
             if (currentCategory !== cat.id) {
                 currentCategory = cat.id;
                 renderCategories(); // Re-render sidebar to update active state
+                renderTags(); // Re-render tags applicable to the new category
                 renderOrganizations(); // Re-render cards
             }
         };
@@ -61,6 +64,54 @@ function renderCategories() {
     });
 }
 
+function renderTags() {
+    const listContainer = document.getElementById('tag-list');
+    if (!listContainer) return;
+
+    // Clear current tags
+    listContainer.innerHTML = '';
+
+    // Extract unique tags from organizations matching the current category
+    const uniqueTags = new Set();
+    allOrganizations.forEach(org => {
+        if (currentCategory === 'all' || org.categoryId === currentCategory) {
+            (org.tags || []).forEach(tag => uniqueTags.add(tag));
+        }
+    });
+
+    // Remove active tags that are no longer available in the current category
+    activeTags = activeTags.filter(t => uniqueTags.has(t));
+
+    uniqueTags.forEach(tag => {
+        const isActive = activeTags.includes(tag);
+
+        const baseClass = isActive
+            ? 'bg-primary/10 text-primary border-primary/20 shadow-inner'
+            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+
+        const span = document.createElement('span');
+        span.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-colors ${baseClass}`;
+        span.textContent = tag;
+
+        // Add checkmark icon for active tags
+        if (isActive) {
+            span.innerHTML = `<span class="material-symbols-outlined text-[14px]">check</span> ${tag}`;
+        }
+
+        span.onclick = () => {
+            if (isActive) {
+                activeTags = activeTags.filter(t => t !== tag);
+            } else {
+                activeTags.push(tag);
+            }
+            renderTags();
+            renderOrganizations();
+        };
+
+        listContainer.appendChild(span);
+    });
+}
+
 function renderOrganizations() {
     const listContainer = document.getElementById('org-list');
     const countDisplay = document.getElementById('store-count');
@@ -69,8 +120,18 @@ function renderOrganizations() {
 
     // Filter organizations
     let filteredList = allOrganizations;
+
+    // 1. Filter by category
     if (currentCategory !== 'all') {
-        filteredList = allOrganizations.filter(o => o.categoryId === currentCategory);
+        filteredList = filteredList.filter(o => o.categoryId === currentCategory);
+    }
+
+    // 2. Filter by active tags (AND logic)
+    if (activeTags.length > 0) {
+        filteredList = filteredList.filter(o => {
+            const orgTags = o.tags || [];
+            return activeTags.every(t => orgTags.includes(t));
+        });
     }
 
     countDisplay.textContent = filteredList.length;
