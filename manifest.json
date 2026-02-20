@@ -1,6 +1,6 @@
 {
-    "name": "Camp Pedidos Directory",
-    "short_name": "Directory",
+    "name": "Camp Pedidos",
+    "short_name": "Camp Pedidos",
     "description": "Seu portal central para deliciosas opções de delivery.",
     "start_url": "/html-camppedidoscore-v1/",
     "display": "standalone",
