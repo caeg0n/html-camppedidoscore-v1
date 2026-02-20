@@ -34,7 +34,9 @@
             "tags": [
                 "Pizzas",
                 "Lanches",
-                "Entrega"
+                "Entrega",
+                "Hambúrguer",
+                "Bebidas"
             ],
             "image": "https://caeg0n.github.io/html-camppedidoseclipse-v1/reference-page-main.png",
             "logo": "https://caeg0n.github.io/html-camppedidoseclipse-v1/favicon.svg",
@@ -52,7 +54,6 @@
             "tags": [
                 "Hambúrguer",
                 "Artesanal",
-                "Bebidas",
                 "Entrega"
             ],
             "image": "https://caeg0n.github.io/html-camppedidosbigbrasa-v1/assets/img/logo2.png",
