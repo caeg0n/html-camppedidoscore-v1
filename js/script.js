@@ -21,7 +21,7 @@ const organizations = [
         reviews: '850',
         description: 'O melhor hambúrguer da cidade. Hambúrgueres artesanais, pastéis e porções feitas com ingredientes selecionados.',
         tags: ['Hambúrguer', 'Artesanal', 'Bebidas'],
-        image: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/assets/img/og-image.svg',
+        image: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/assets/img/logo2.png',
         logo: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/favicon.svg',
         url: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/compras/'
     }
