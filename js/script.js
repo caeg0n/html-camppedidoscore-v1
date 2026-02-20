@@ -3,13 +3,13 @@ const organizations = [
         id: 'eclipse',
         name: 'Eclipse Pizzas e Sanduíches',
         image: 'https://caeg0n.github.io/html-camppedidoseclipse-v1/reference-page-main.png',
-        url: 'https://caeg0n.github.io/html-camppedidoseclipse-v1/'
+        url: 'https://caeg0n.github.io/html-camppedidoseclipse-v1/compras/'
     },
     {
         id: 'bigbrasa',
         name: 'Hamburgueria Big Brasa',
         image: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/assets/img/logo2.png',
-        url: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/'
+        url: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/compras/'
     }
 ];
 
