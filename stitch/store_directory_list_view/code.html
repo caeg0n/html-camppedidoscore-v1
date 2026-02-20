@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Store Directory List View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                    },
+                    fontFamily: {
+                        "sans": ["Plus Jakarta Sans", "sans-serif"],
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for sidebar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #334155;
+        }
+        
+        /* Glassmorphism utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-sans antialiased min-h-screen flex flex-col transition-colors duration-300">
+<!-- Header / Navbar -->
+<header class="sticky top-0 z-50 glass-panel border-b border-white/50 dark:border-white/5">
+<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between h-20 gap-8">
+<!-- Logo -->
+<div class="flex items-center gap-3 shrink-0">
+<div class="size-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-lg shadow-primary/30">
+<span class="material-symbols-outlined text-[24px]">storefront</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white hidden sm:block">Store<span class="text-primary">Dir</span></h1>
+</div>
+<!-- Global Search -->
+<div class="flex-1 max-w-2xl hidden md:block">
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+</div>
+<input class="block w-full pl-11 pr-4 py-3 rounded-xl bg-slate-100/50 dark:bg-slate-800/50 border-transparent focus:border-primary focus:bg-white dark:focus:bg-slate-800 focus:ring-0 transition-all placeholder:text-slate-400 text-sm" placeholder="Search for stores, categories, or products..." type="text"/>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-4 shrink-0">
+<nav class="hidden lg:flex items-center gap-6 mr-4">
+<a class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors" href="#">Submit Store</a>
+<a class="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-primary transition-colors" href="#">About</a>
+</nav>
+<button class="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 rounded-full border-2 border-white dark:border-background-dark"></span>
+</button>
+<button class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+<img alt="User Avatar" class="size-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA78s6pJ5oVlnQUa21e6dZkmiYUoJLp9kTsZKsD3NvabVortIcJwsOEh4z4nKsXuhSEHY01G4-pqzYue5YiCRx9ZAmd-gw0yMN-u4RZoi1WaGy1kl6dsoWpOswYocrggoodUTMmyIrVZJn8YIfVzw2lnSkGGtgqAYvIWmaiuY1yIGxuy4C6nOB8znEcY3WCcZGaoKMB6j8IbBJlCfOEPIgkmM6trkkTx7aITFIMXoBcb-LzAIEpnNPwOAxPm8G0cNY4GPLpOYWGpRc"/>
+<span class="text-sm font-medium hidden sm:block">Alex M.</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Layout -->
+<div class="flex flex-1 max-w-[1440px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 gap-8">
+<!-- Sidebar Navigation -->
+<aside class="w-64 hidden lg:flex flex-col gap-8 shrink-0 sticky top-28 h-[calc(100vh-9rem)]">
+<!-- Category Menu -->
+<div class="flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-2 pb-4">
+<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-3">Categories</h3>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-medium transition-all shadow-sm" href="#">
+<span class="material-symbols-outlined filled text-[20px]">grid_view</span>
+                    All Stores
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform text-[20px]">checkroom</span>
+                    Fashion
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform text-[20px]">devices</span>
+                    Electronics
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform text-[20px]">chair</span>
+                    Home &amp; Living
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform text-[20px]">brush</span>
+                    Beauty &amp; Health
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform text-[20px]">sports_soccer</span>
+                    Sports
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform text-[20px]">toys</span>
+                    Kids &amp; Baby
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform text-[20px]">pets</span>
+                    Pet Supplies
+                </a>
+</div>
+<!-- Filters Banner -->
+<div class="mt-auto p-4 rounded-xl bg-gradient-to-br from-primary/80 to-blue-600 text-white relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 size-24 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+<div class="relative z-10">
+<p class="font-bold text-lg mb-1">Weekly Picks</p>
+<p class="text-sm text-blue-100 mb-3">Curated best stores for this week.</p>
+<button class="bg-white text-primary text-xs font-bold py-2 px-4 rounded-lg hover:bg-blue-50 transition-colors">View Collection</button>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 min-w-0">
+<!-- Page Header & Filters -->
+<div class="mb-8 space-y-6">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="text-3xl font-bold tracking-tight mb-2">Browse Stores</h2>
+<p class="text-slate-500 dark:text-slate-400">Discover <span class="text-primary font-semibold">1,248</span> trending online shops curated for you.</p>
+</div>
+<div class="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium hover:border-primary transition-colors whitespace-nowrap shadow-sm">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+                            Filters
+                        </button>
+<div class="h-6 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
+<button class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium shadow-md shadow-primary/25 hover:bg-primary/90 transition-colors whitespace-nowrap">
+                            Popular
+                        </button>
+<button class="px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
+                            Newest
+                        </button>
+<button class="px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">
+                            Top Rated
+                        </button>
+</div>
+</div>
+<!-- Active Filter Tags -->
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                        United States
+                        <button class="hover:bg-primary/20 rounded-full p-0.5"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        Free Shipping
+                        <button class="hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full p-0.5"><span class="material-symbols-outlined text-[14px]">close</span></button>
+</span>
+<button class="text-xs font-medium text-slate-500 hover:text-primary underline decoration-slate-300 underline-offset-4">Clear all</button>
+</div>
+</div>
+<!-- Store Cards List -->
+<div class="flex flex-col gap-5">
+<!-- Card 1 -->
+<article class="glass-card rounded-xl p-4 sm:p-5 flex flex-col md:flex-row gap-5 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group">
+<!-- Thumbnail -->
+<div class="w-full md:w-64 h-48 md:h-auto shrink-0 rounded-lg overflow-hidden relative bg-slate-200 dark:bg-slate-800">
+<div class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-105" data-alt="Minimalist clothing store website homepage mockup" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA_K-dQhldXkAueEr45sfhWQD8kviPcVA7xkPwYvOXFmaAW1WIFcCkrCnOYoQx6RI16ijrGzGOaZVOn3tCOpZcMgJ9m3ndb-JoonYH3WgW28nC1uFLSovEnKXUwCKSv-6qfi4WnN6HUrguCrN1Jg-0ieiQzlvcE5A3yEknjvKBSgSwu72U-rD9f7BWSmaDPf7IdX2S_S2nhntJlkJICH8driMTjOpcL-U1TOi4ICQOBjV1cy_QpI3cimOFaQK10IM_ffYfzc0car3s')"></div>
+<div class="absolute top-2 left-2 px-2 py-1 bg-black/70 backdrop-blur-sm rounded text-[10px] font-bold text-white uppercase tracking-wider">Featured</div>
+</div>
+<!-- Content -->
+<div class="flex flex-col flex-1 justify-between gap-4">
+<div class="space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<img alt="Everlane Logo" class="size-10 rounded-full border border-slate-100 dark:border-slate-700 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDR0pzZpYrilrhMY0FbXevZ1N1bzCahuBg79Mn4z1vuTgXAvWrG4h2cI8uV4y9SpFfZO1dD5p8tF3mewO2qD-BKytgO3CqZ-HTX_k0d56U6ZNiTN-jFDf5XUvJvneHwYz-kLlAYBmpwljehTs3M6VJqmbvd-Xf43FpWvmOzY_IZXkF7epSymCkpbhLcRrBW9Jqlv1j2MuBaxP93lxQfi5Bl7cvUqWNId6S6KyX75pqpBd-dH4B5BYMpDP6A-qTZy5CMgopIpS9i1_M"/>
+<div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors">Everlane</h3>
+<div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+<span>Fashion</span>
+<span class="size-1 bg-slate-300 rounded-full"></span>
+<span>San Francisco, CA</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-yellow-400/10 text-yellow-600 dark:text-yellow-500 px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined filled text-[16px]">star</span>
+<span class="text-sm font-bold">4.8</span>
+<span class="text-xs text-slate-400 dark:text-slate-500 font-normal">(1.2k)</span>
+</div>
+</div>
+<p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed line-clamp-2">
+                                Modern essentials. Radically transparent. We believe we can all make a difference. Known for exceptional quality, ethical factories, and Radical Transparency.
+                            </p>
+<div class="flex flex-wrap gap-2">
+<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium border border-slate-200 dark:border-slate-700">Sustainable</span>
+<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium border border-slate-200 dark:border-slate-700">Men &amp; Women</span>
+<span class="px-2.5 py-1 rounded-md bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-xs font-medium border border-green-100 dark:border-green-800">Ethical Labor</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
+<button class="text-slate-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</button>
+<a class="inline-flex items-center gap-2 bg-primary hover:bg-sky-500 text-white text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md shadow-primary/20 hover:shadow-primary/40" href="#">
+                                Visit Store
+                                <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+</a>
+</div>
+</div>
+</article>
+<!-- Card 2 -->
+<article class="glass-card rounded-xl p-4 sm:p-5 flex flex-col md:flex-row gap-5 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group">
+<div class="w-full md:w-64 h-48 md:h-auto shrink-0 rounded-lg overflow-hidden relative bg-slate-200 dark:bg-slate-800">
+<div class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-105" data-alt="Modern tech gadget store website with dark theme" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBoCl1RLL8gKhqtsUvAVR-j1d5vZi1X4Sc50MnZg0lQWPbZxtFxbgkARCXIGIKaL-H0hq6-1LAB-kyL_yrsIM59Ky-r1jkgyQd3ydrlDXwEGuaMtyNAqGFT599OvpeLM_6m_3qhP-NytCDHUfmcxyuHzoUeCoVNzOf6mRXwTZ451n3yLWgl5PR9UnAbu4DXzV71Qn-Sq_lBazM4xlS2Hd9awzYMlHA5sk9dI6556XiYEy4pfJThPfl04a66qgsmDwh4W6bCk7bdj8g')"></div>
+</div>
+<div class="flex flex-col flex-1 justify-between gap-4">
+<div class="space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<img alt="TechNova Logo" class="size-10 rounded-full border border-slate-100 dark:border-slate-700 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnT0r-MC2hYHscPbvUZHzaQNOhJPQNO8wLzYDWEfjCngQ8urha2Ip-UQ_RC9tFamyKcejpwWlCkUF-b1V1nLSLcJ639h-pebzyNpHVJEL3TUj4VVDngruWMm1mp-A9DP0rAqVymEXmNJk2S5tgRuOdO_n7rb_ikRxcuTAH2WoLqdNTHvL2io7hTx0G1tSTuYSbPCblmk6VuYzZEvbMutieic-nXZf8THe5-P-VYsDi0lxUiSSf84DnwYD1jrVOVfxrXvwU9EOLCoA"/>
+<div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors">TechNova</h3>
+<div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+<span>Electronics</span>
+<span class="size-1 bg-slate-300 rounded-full"></span>
+<span>Austin, TX</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined filled text-[16px] text-yellow-400">star</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white">4.5</span>
+<span class="text-xs font-normal">(850)</span>
+</div>
+</div>
+<p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed line-clamp-2">
+                                Premium gadgets and accessories for the modern workspace. We curate the latest tech to boost your productivity and style.
+                            </p>
+<div class="flex flex-wrap gap-2">
+<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium border border-slate-200 dark:border-slate-700">Gadgets</span>
+<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium border border-slate-200 dark:border-slate-700">Workspace</span>
+<span class="px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium border border-blue-100 dark:border-blue-800">Fast Shipping</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
+<button class="text-slate-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined">favorite_border</span>
+</button>
+<a class="inline-flex items-center gap-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md" href="#">
+                                Visit Store
+                                <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+</a>
+</div>
+</div>
+</article>
+<!-- Card 3 -->
+<article class="glass-card rounded-xl p-4 sm:p-5 flex flex-col md:flex-row gap-5 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group">
+<div class="w-full md:w-64 h-48 md:h-auto shrink-0 rounded-lg overflow-hidden relative bg-slate-200 dark:bg-slate-800">
+<div class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-105" data-alt="Cozy home furniture store interior website view" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjt5kY39YJM2qNo-PVSb3p0sht2zggHjyk_XxJKcfL-SMwJtrmp-sdRzSl9KjN8cDc2tla1KAmndA_UUtnHvaUrSOqzKCv34sTnzaE5YnRVY_gm8kEob9b-Dj-rPtb14QGxRlshpWXDLV4PuYr_ZqQhEzbFdkPCPDMhE6aD1b-u5BWl0htS0A6pa1USqe3tvhrMZz7GgXrNki3gRhl_mfuqhTTeHlFd5NAJ-JjWpJ2WNsXbnwv4t-6tDZvl4m5HBPAVc3tOKc3-7o')"></div>
+<div class="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white rounded text-[10px] font-bold uppercase tracking-wider shadow-sm">-20% Sale</div>
+</div>
+<div class="flex flex-col flex-1 justify-between gap-4">
+<div class="space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<img alt="Nordic Nest Logo" class="size-10 rounded-full border border-slate-100 dark:border-slate-700 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmk88eW6UCXiWVBADRKqgRMS4TbP4QFhtwijFhMHrFJ8XchXlqEGi4fse3kJDM0tUg89Enn_UpXVeCiCRnBjj4fOb4RVdR7cWm2a7i-4Jh3KYaRUPZiNh8q6c6w1YjAkaFl_DP0AqU2214fNYisfNtw2TEwGJNIEBN-7QR5t0mYyl8gV-Hq7trHuGImYiS9lm7V66pDKyZ3ecM487ZsVls7krFP-9Z_rt572T3pPBgKvU97ld3lpfO1aB8hX4xaM4XSuFKBuChvvU"/>
+<div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors">Nordic Nest</h3>
+<div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+<span>Home &amp; Living</span>
+<span class="size-1 bg-slate-300 rounded-full"></span>
+<span>Stockholm, SE</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined filled text-[16px] text-yellow-400">star</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white">4.9</span>
+<span class="text-xs font-normal">(2.4k)</span>
+</div>
+</div>
+<p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed line-clamp-2">
+                                Scandinavian design for your home. We bring the Nordic lifestyle to you through functional and beautiful furniture.
+                            </p>
+<div class="flex flex-wrap gap-2">
+<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium border border-slate-200 dark:border-slate-700">Furniture</span>
+<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium border border-slate-200 dark:border-slate-700">Decor</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
+<button class="text-red-500 hover:text-red-600 transition-colors">
+<span class="material-symbols-outlined filled">favorite</span>
+</button>
+<a class="inline-flex items-center gap-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md" href="#">
+                                Visit Store
+                                <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+</a>
+</div>
+</div>
+</article>
+<!-- Card 4 -->
+<article class="glass-card rounded-xl p-4 sm:p-5 flex flex-col md:flex-row gap-5 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group opacity-80 hover:opacity-100">
+<div class="w-full md:w-64 h-48 md:h-auto shrink-0 rounded-lg overflow-hidden relative bg-slate-200 dark:bg-slate-800 grayscale group-hover:grayscale-0 transition-all duration-500">
+<div class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-105" data-alt="Cosmetics and beauty products website layout" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA1wlqDPovSuCyrZ2j0O61JJCLuXOOdLKKoMok2JTUXl-wcsxBDNE7hG-Et4TeiN2--ZwsJAU-IRsy9Q0Rt9J7UXyXyukpIXRXWQWKBifRsfc2nvabCnrDQGq_2o3TJ7tOskV8UNZaNNEwiY61B_nwAOsul5qsFeGRhv_T-6OEPLStW3NnMwNTBUBPUKwN3V9HSYxdY8aRqZ0Jf22_1_VE6_BMkyujlZpXzwSpYVfzTVkw-gB3Nv-J43s0AYkc7T-ekrq3sYF7i5Ow')"></div>
+</div>
+<div class="flex flex-col flex-1 justify-between gap-4">
+<div class="space-y-3">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<img alt="Glow Co Logo" class="size-10 rounded-full border border-slate-100 dark:border-slate-700 shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuxNLnswsGcyuQ-Zeh2kAlZZPuCys80c71_5LAGtl7zjvLo36d8GgNZjX1i827Wvwq8AYluUfm0rK2lZ3MVlybbhUkZfQIeX90Gr3iaO_FBENNqksvypVB7SWnI-uTYPXkv8lB6wPc2YLrjEe3yp8v9AmbmublXUF_fLqHJ1xRW9Vnb8DnQx-iBeYJINcyF4LPzjSTq5jCUw1C8g_JqA3TV5nu-UuMiAzxnwxdUZ9pEJrwFEB0YPuxxtAJ9NLY43oGfXDRVSF_arE"/>
+<div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors">Glow &amp; Co.</h3>
+<div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+<span>Beauty</span>
+<span class="size-1 bg-slate-300 rounded-full"></span>
+<span>New York, NY</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-1 rounded-lg">
+<span class="material-symbols-outlined filled text-[16px] text-yellow-400">star</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white">4.2</span>
+<span class="text-xs font-normal">(320)</span>
+</div>
+</div>
+<p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed line-clamp-2">
+                                Clean beauty for everyone. Vegan, cruelty-free, and effective skincare formulations derived from nature's best ingredients.
+                            </p>
+<div class="flex flex-wrap gap-2">
+<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium border border-slate-200 dark:border-slate-700">Skincare</span>
+<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium border border-slate-200 dark:border-slate-700">Vegan</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
+<button class="text-slate-400 hover:text-red-500 transition-colors">
+<span class="material-symbols-outlined">favorite_border</span>
+</button>
+<a class="inline-flex items-center gap-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md" href="#">
+                                Visit Store
+                                <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+</a>
+</div>
+</div>
+</article>
+</div>
+<!-- Pagination -->
+<div class="mt-10 flex items-center justify-between border-t border-slate-200 dark:border-slate-700/50 pt-6">
+<button class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">
+<span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                    Previous
+                </button>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-bold shadow-md shadow-primary/30">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium transition-colors">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium transition-colors">3</button>
+<span class="text-slate-400 px-2">...</span>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium transition-colors">12</button>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors">
+                    Next
+                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</main>
+</div>
+</body></html>

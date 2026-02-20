@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Store Directory Grid View</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "primary-content": "#ffffff",
+                        "primary-dark": "#0e8acb",
+                        "primary-light": "#e0f2fe",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'soft-hover': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-display selection:bg-primary/30 selection:text-primary-dark">
+<!-- Header -->
+<header class="sticky top-0 z-50 w-full bg-white/80 dark:bg-[#111618]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-all duration-200">
+<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+<!-- Logo -->
+<div class="flex items-center gap-3 shrink-0 cursor-pointer">
+<div class="size-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">storefront</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white hidden sm:block">StoreDir</h1>
+</div>
+<!-- Search Bar (Desktop) -->
+<div class="hidden md:flex flex-1 max-w-xl mx-auto">
+<div class="relative w-full group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Search stores, products, or categories..." type="text"/>
+<div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+<kbd class="hidden lg:inline-flex items-center border border-slate-200 dark:border-slate-600 rounded px-2 text-xs font-sans font-medium text-slate-400">⌘K</kbd>
+</div>
+</div>
+</div>
+<!-- Right Actions -->
+<div class="flex items-center gap-3 shrink-0">
+<button class="md:hidden p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+<span class="material-symbols-outlined">search</span>
+</button>
+<div class="hidden sm:flex gap-2">
+<button class="px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">Log In</button>
+<button class="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-sm shadow-primary/30 transition-all transform active:scale-95">Sign Up</button>
+</div>
+<div class="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block"></div>
+<button class="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:ring-2 hover:ring-primary/50 transition-all">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<!-- Hero / Intro -->
+<div class="mb-10 text-center sm:text-left sm:flex sm:items-end sm:justify-between">
+<div>
+<h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Discover Top Online Stores</h2>
+<p class="text-slate-500 dark:text-slate-400 text-lg max-w-2xl">Browse our curated directory of the best e-commerce shops categorized for your convenience.</p>
+</div>
+<!-- Mobile Filter Toggle (Visible only on small screens) -->
+<button class="mt-4 sm:mt-0 sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium shadow-sm">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+                Filter Categories
+            </button>
+</div>
+<!-- Filter Bar -->
+<div class="relative group mb-10">
+<div class="flex overflow-x-auto hide-scrollbar gap-3 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scroll-smooth">
+<!-- Active Filter -->
+<button class="flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white shadow-md shadow-primary/25 transition-transform hover:scale-105 active:scale-95 text-sm font-semibold">
+<span class="material-symbols-outlined text-[20px]">star</span>
+                    All
+                </button>
+<!-- Inactive Filters -->
+<button class="flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">checkroom</span>
+                    Fashion
+                </button>
+<button class="flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">devices</span>
+                    Electronics
+                </button>
+<button class="flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">chair</span>
+                    Home &amp; Garden
+                </button>
+<button class="flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">face</span>
+                    Beauty
+                </button>
+<button class="flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">fitness_center</span>
+                    Sports
+                </button>
+<button class="flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">toys</span>
+                    Kids &amp; Toys
+                </button>
+<button class="flex shrink-0 items-center gap-2 px-5 py-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">auto_stories</span>
+                    Books
+                </button>
+</div>
+<!-- Fade effect on right for scrolling indication -->
+<div class="absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-background-light dark:from-background-dark to-transparent pointer-events-none sm:hidden"></div>
+</div>
+<!-- Grid Layout -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+<!-- Store Card 1 -->
+<article class="group flex flex-col bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-soft hover:shadow-soft-hover border border-slate-100 dark:border-slate-700/50 transition-all duration-300 hover:-translate-y-1">
+<div class="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-700">
+<img alt="Minimalist clothing store hero image showing rack of clothes" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMjBtXuO4CwmYu0sxkDye216vxi_wJe3xE1VtHMRZfBmrLvcrdIcIukZXTBXkWiuXfC6KjGwQWRhi6Yv_XByFUOtrS0Kl4AVJIL8KiZL4XTsbs3Re3OWBbbuAnVlinX9uhemv3JiftKgUnJbNHROwaIrbmV9-28vycsQLmApObYsjXWs2ttN4jDWe6_SdLAzd8NrUr_KACXLmNhD5cXWRcjd7UUeZQIWwadMRrpZ63Ayygq4gYu7kwmgtr7iudX8yA0SAzJlz-fpQ"/>
+<div class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-[14px] fill-1">star</span> 4.9
+                    </div>
+</div>
+<div class="flex flex-col flex-1 p-5">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Nordic Threads</h3>
+<span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">Fashion</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">Minimalist clothing for the modern explorer. Sustainable materials sourced ethically from Scandinavia.</p>
+<button class="w-full mt-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-bold transition-all group/btn">
+                        Visit Store
+                        <span class="material-symbols-outlined text-[18px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- Store Card 2 -->
+<article class="group flex flex-col bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-soft hover:shadow-soft-hover border border-slate-100 dark:border-slate-700/50 transition-all duration-300 hover:-translate-y-1">
+<div class="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-700">
+<img alt="High tech electronics layout with circuit board background" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1KRb8XYBKjp3PeKrGumXW6bxtuq6b_BTm5zraLEOltiy21e0m5tJC4Oceg2Z3kVtc5u_xu30jMiVwhaPhvoU2M3i-jliehKlU8mC9-vNQkdgWLdqnDg2DQnRiWcEcN1o9jBEmAerxfDDsBoWS9Z009Hay7QUGB9Hp8IxH_8fTfFfbkvQT4OoUaEnDNo8msxmMdNMgSv0rzAWUuPquK1DbcU4I_LrifpM3WQh2H4pYw5LqTGjLAUMOAwgohQ1YuAmrpAryt0ILipQ"/>
+<div class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-[14px] fill-1">star</span> 4.7
+                    </div>
+</div>
+<div class="flex flex-col flex-1 p-5">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Gizmo World</h3>
+<span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">Tech</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">The latest in smart home technology and wearable devices. Upgrade your life with our curated gadgets.</p>
+<button class="w-full mt-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-bold transition-all group/btn">
+                        Visit Store
+                        <span class="material-symbols-outlined text-[18px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- Store Card 3 -->
+<article class="group flex flex-col bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-soft hover:shadow-soft-hover border border-slate-100 dark:border-slate-700/50 transition-all duration-300 hover:-translate-y-1">
+<div class="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-700">
+<img alt="Cozy modern living room interior with plants" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOC079DQaeLhS6kwfmhc6EKTcY521SeXKLhiiGakyeXli5TY7VSp1m0KPw5x2A5BdVc8WNYzlBhxZlB4q0DYdMTxCUWmKd3wHNgEzkIlieiZmaGfX5MCHOaFksFpysq_IS2yCEu4AL4KeDk1MLBShHQgXZUyMqMIBqZWUpMObJF-ksWWCIbRMLMTpowpuyukg3ozYfFKReSeJqCCmTVQL4bcNorslOT1l-Q5q-eEnr46Op5a4QiwcjEIL_EDNpby7jqXyfr-b5PHc"/>
+<div class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-[14px] fill-1">star</span> 4.5
+                    </div>
+</div>
+<div class="flex flex-col flex-1 p-5">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Green Haven</h3>
+<span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">Home</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">Your one-stop shop for indoor plants and gardening tools. Bring nature inside your home.</p>
+<button class="w-full mt-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-bold transition-all group/btn">
+                        Visit Store
+                        <span class="material-symbols-outlined text-[18px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- Store Card 4 -->
+<article class="group flex flex-col bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-soft hover:shadow-soft-hover border border-slate-100 dark:border-slate-700/50 transition-all duration-300 hover:-translate-y-1">
+<div class="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-700">
+<img alt="Beauty products arrangement with serum bottles" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOw_CpMCJ6aDfQPzYwHMaZ71hsyj9us4wpMKDxihJTa9n-4lH6ZRU4hE8FP8Rqb7_qRNCzKDj8Izqha2zpfKNa2PlLqmI9VSS7qEV9QeBX5FBKPbIEbqDlhnVq0GugnMnzoki4JFdcdwOwU1vdi-8xlM69mhFTUF-xzIGttEum37fz0XSDrxALkODzrwSySBbgOFIPF0lqPj0FuWqCuhvjPV41OtvbkK-0ff2wmFYmwBPYMexOyXpWoXTf8nb1M9E197eOiGsxnYg"/>
+<div class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-[14px] fill-1">star</span> 5.0
+                    </div>
+</div>
+<div class="flex flex-col flex-1 p-5">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Luxe Beauty</h3>
+<span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">Beauty</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">Premium skincare and makeup brands from around the globe. Cruelty-free and organic options.</p>
+<button class="w-full mt-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-bold transition-all group/btn">
+                        Visit Store
+                        <span class="material-symbols-outlined text-[18px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- Store Card 5 -->
+<article class="group flex flex-col bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-soft hover:shadow-soft-hover border border-slate-100 dark:border-slate-700/50 transition-all duration-300 hover:-translate-y-1">
+<div class="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-700">
+<img alt="Gym equipment and weights in a modern fitness center" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtc8hdX3kgcFW7QJhnH40FSPUninCjFzicpjW30SvSQCVQBR5b9ekS-Jjz6GXZj11syqL4aNYFgf1vpg66L0h4cjppNAch-Ax0vbEGauOEeObdlVwX8NlFSI_8OCW8iNklV4VX161XW-6O0Nd7zFmdEdmN7XgvNckkY976bcAyjs4XDt2nxD32IsTIfMrG7JIXlecbu9rgbfnMAJXYVKXsX2kSUsVAF6Eh2IFUQBzMKYpINN1CVTcwu5Uv0B3nkZckVr74sqcq5E4"/>
+<div class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-[14px] fill-1">star</span> 4.8
+                    </div>
+</div>
+<div class="flex flex-col flex-1 p-5">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">FitLife Gear</h3>
+<span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">Sports</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">High-performance athletic wear and gym equipment for serious athletes. Train better, recover faster.</p>
+<button class="w-full mt-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-bold transition-all group/btn">
+                        Visit Store
+                        <span class="material-symbols-outlined text-[18px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- Store Card 6 -->
+<article class="group flex flex-col bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-soft hover:shadow-soft-hover border border-slate-100 dark:border-slate-700/50 transition-all duration-300 hover:-translate-y-1">
+<div class="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-700">
+<img alt="Modern furniture showroom with chair and table" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzVd-PJGmS8hiRTQEPDwsR4tMiecjh7PZpK4IGrYcH4ehMp0Vsfr6CoGsOKHufxdbb9BT2TiCfQ4_SxlFg-K69qxRavERbW8wM9JU6iKYrTduCkhmw5LCBVhjq6AZXKVvTllTmXZtBYw2TsD6IkhgRhy2nax33EMzFPo-Xy7jLR17WjweqZF2PkTTAALlnaWzwub3fZmFFZNjew--bDA-QIEPonIfkmXkOTb7kopRaWs8P5yE27at-KEyS4F2nxVhYRSHZAZ8GFdo"/>
+<div class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-[14px] fill-1">star</span> 4.6
+                    </div>
+</div>
+<div class="flex flex-col flex-1 p-5">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Modern Home</h3>
+<span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">Furniture</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">Contemporary furniture and decor for every room. Sleek designs that fit your urban lifestyle.</p>
+<button class="w-full mt-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-bold transition-all group/btn">
+                        Visit Store
+                        <span class="material-symbols-outlined text-[18px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- Store Card 7 -->
+<article class="group flex flex-col bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-soft hover:shadow-soft-hover border border-slate-100 dark:border-slate-700/50 transition-all duration-300 hover:-translate-y-1">
+<div class="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-700">
+<img alt="A collection of colorful makeup palettes and brushes" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBzKEzcKTauV5tds5xx0208xoW8M7uBQY0K6A3wh_U7itQJBdDzd5qbVsLOfun1o52ZrCUxvXI75U7BJkiCJ9nGmapWZJ_bak3cnFn0LfZeYk_W5MNL3wLVQS3MI8qds8fjQKv2GhqkcjEoH0pjjw3LQUPyIGCp7Ko5JalhHiHrNwAY-_mcXH1Jv_A5NAFgHZoV0W-2vbCKB-JVVvsZ-U3O70Bu2fImXimj_ijoOxFlGT1S6PZ8PGfcmKod-i-jCnog_dPrlv8d9c"/>
+<div class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-[14px] fill-1">star</span> 4.4
+                    </div>
+</div>
+<div class="flex flex-col flex-1 p-5">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Color Pop</h3>
+<span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">Beauty</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">Vibrant cosmetics for the bold and beautiful. Express yourself with our unique color palettes.</p>
+<button class="w-full mt-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-bold transition-all group/btn">
+                        Visit Store
+                        <span class="material-symbols-outlined text-[18px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- Store Card 8 -->
+<article class="group flex flex-col bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-soft hover:shadow-soft-hover border border-slate-100 dark:border-slate-700/50 transition-all duration-300 hover:-translate-y-1">
+<div class="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-700">
+<img alt="Gaming setup with RGB lighting and headphones" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqlDiz9kDs8trAx0n1BDDr50WdmcigB9W7cfNls198eVs4o2cgEobvv2TivIDhudvVgAcv6CbnBumjl7h56pxizqLgPxcIwJ5DLw_eoy4EZOp0YIb4r3fLujR4_GK--d5CESa5ePmFfwWUt7RwIJ-4OZfu2CKF0tc32C-V6mfklj5n69-b2juvkXrpO7IP8GmhccUiXlaJ-IZi0u-jSr2nbMcxrrtdMwQr-xW4mTO2piO5lmQZhd03YH4hwEk_13eBrwYU7GXMG_E"/>
+<div class="absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-[14px] fill-1">star</span> 4.9
+                    </div>
+</div>
+<div class="flex flex-col flex-1 p-5">
+<div class="flex justify-between items-start mb-2">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors">Pixel Play</h3>
+<span class="text-xs font-medium px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">Gaming</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">Ultimate gaming gear store. Keyboards, mice, and headsets designed for competitive play.</p>
+<button class="w-full mt-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 text-primary hover:bg-primary hover:text-white rounded-lg text-sm font-bold transition-all group/btn">
+                        Visit Store
+                        <span class="material-symbols-outlined text-[18px] transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</article>
+</div>
+<!-- Pagination / Load More -->
+<div class="mt-12 flex justify-center">
+<button class="flex items-center gap-2 px-8 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:scale-105 active:scale-95">
+<span class="material-symbols-outlined animate-spin-slow" style="animation-duration: 2s;">refresh</span>
+                Load More Stores
+            </button>
+</div>
+<!-- Newsletter Section (Optional Footer-ish content) -->
+<section class="mt-20 mb-8 rounded-3xl bg-primary/5 dark:bg-primary/10 border border-primary/10 p-8 sm:p-12 text-center relative overflow-hidden">
+<!-- Decorative circle -->
+<div class="absolute -top-24 -left-24 size-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-24 -right-24 size-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative z-10 max-w-2xl mx-auto">
+<div class="size-16 bg-white dark:bg-slate-800 rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-6 text-primary">
+<span class="material-symbols-outlined text-3xl">mail</span>
+</div>
+<h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-4">Never miss a trending store</h2>
+<p class="text-slate-600 dark:text-slate-300 mb-8">Join 15,000+ shoppers discovering new brands weekly. We only send the good stuff.</p>
+<form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+<input class="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-2 focus:ring-primary focus:border-transparent outline-none shadow-sm text-slate-900 dark:text-white" placeholder="Enter your email" type="email"/>
+<button class="px-6 py-3 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/25 hover:bg-primary-dark transition-colors" type="button">Subscribe</button>
+</form>
+</div>
+</section>
+</main>
+</body></html>
