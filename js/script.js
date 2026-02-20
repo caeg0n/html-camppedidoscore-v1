@@ -57,7 +57,7 @@ function renderOrganizations() {
                     <div class="space-y-3">
                         <div class="flex items-start justify-between">
                             <div class="flex items-center gap-3">
-                                <img alt="${org.name} Logo" class="size-10 rounded-full border border-slate-100 dark:border-slate-700 shadow-sm" src="${org.logo}" onerror="this.src='favicon.svg'"/>
+                                <img alt="${org.name} Logo" class="size-10 rounded-full bg-black border border-slate-100 dark:border-slate-700 shadow-sm" src="${org.logo}" onerror="this.src='favicon.svg'"/>
                                 <div>
                                     <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors">${org.name}</h3>
                                     <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
