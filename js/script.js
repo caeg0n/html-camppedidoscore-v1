@@ -2,6 +2,17 @@ let allOrganizations = [];
 let allCategories = [];
 let currentCategory = 'all';
 let activeTags = [];
+let favoriteOrgs = new Set(JSON.parse(localStorage.getItem('camppedidos_favorites') || '[]'));
+
+function toggleFavorite(orgId) {
+    if (favoriteOrgs.has(orgId)) {
+        favoriteOrgs.delete(orgId);
+    } else {
+        favoriteOrgs.add(orgId);
+    }
+    localStorage.setItem('camppedidos_favorites', JSON.stringify(Array.from(favoriteOrgs)));
+    renderOrganizations();
+}
 
 async function init() {
     try {
@@ -134,6 +145,13 @@ function renderOrganizations() {
         });
     }
 
+    // 3. Sort so favorites are always pushed to the top
+    filteredList.sort((a, b) => {
+        const aFav = favoriteOrgs.has(a.id) ? 1 : 0;
+        const bFav = favoriteOrgs.has(b.id) ? 1 : 0;
+        return bFav - aFav;
+    });
+
     countDisplay.textContent = filteredList.length;
 
     if (filteredList.length === 0) {
@@ -190,9 +208,10 @@ function renderOrganizations() {
                     </div>
                     
                     <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
-                        <button class="text-slate-400 hover:text-red-500 transition-colors" onclick="const icon = this.querySelector('span'); if (icon.textContent === 'favorite_border') { icon.textContent = 'favorite'; icon.classList.add('filled'); this.classList.remove('text-slate-400'); this.classList.add('text-red-500'); } else { icon.textContent = 'favorite_border'; icon.classList.remove('filled'); this.classList.remove('text-red-500'); this.classList.add('text-slate-400'); }">
-                            <span class="material-symbols-outlined">favorite_border</span>
-                        </button>
+                        ${favoriteOrgs.has(org.id)
+                ? `<button class="text-red-500 hover:text-slate-400 transition-colors" onclick="toggleFavorite('${org.id}')"><span class="material-symbols-outlined filled">favorite</span></button>`
+                : `<button class="text-slate-400 hover:text-red-500 transition-colors" onclick="toggleFavorite('${org.id}')"><span class="material-symbols-outlined">favorite_border</span></button>`
+            }
                         <a class="inline-flex items-center gap-2 bg-primary hover:bg-sky-500 text-white text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md shadow-primary/20 hover:shadow-primary/40" href="${org.url}" rel="noopener">
                             Ver Cardápio
                             <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
