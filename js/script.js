@@ -1,31 +1,65 @@
-const organizations = [
-    {
-        id: 'eclipse',
-        name: 'Eclipse Pizzas e Sanduíches',
-        category: 'Pizzaria',
-        location: 'Campinápolis, MT',
-        rating: '4.8',
-        reviews: '1.2k',
-        description: 'O pôr do sol mais charmoso da city. Pizzas, sanduíches, caldos e porções caprichadas.',
-        tags: ['Pizzas', 'Lanches', 'Entrega'],
-        image: 'https://caeg0n.github.io/html-camppedidoseclipse-v1/reference-page-main.png',
-        logo: 'https://caeg0n.github.io/html-camppedidoseclipse-v1/favicon.svg',
-        url: 'https://caeg0n.github.io/html-camppedidoseclipse-v1/compras/'
-    },
-    {
-        id: 'bigbrasa',
-        name: 'Hamburgueria Big Brasa',
-        category: 'Hamburgueria',
-        location: 'Campinápolis, MT',
-        rating: '4.9',
-        reviews: '850',
-        description: 'O melhor hambúrguer da cidade. Hambúrgueres artesanais, pastéis e porções feitas com ingredientes selecionados.',
-        tags: ['Hambúrguer', 'Artesanal', 'Bebidas'],
-        image: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/assets/img/logo2.png',
-        logo: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/favicon.svg',
-        url: 'https://caeg0n.github.io/html-camppedidosbigbrasa-v1/compras/'
+let allOrganizations = [];
+let allCategories = [];
+let currentCategory = 'all';
+
+async function init() {
+    try {
+        // Fetch CMS data from GitHub Pages JSON file
+        const res = await fetch('data.json');
+        const data = await res.json();
+
+        allCategories = data.categories || [];
+        allOrganizations = data.organizations || [];
+
+        renderCategories();
+        renderOrganizations();
+    } catch (e) {
+        console.error("Failed to load CMS data:", e);
+        const listContainer = document.getElementById('org-list');
+        if (listContainer) {
+            listContainer.innerHTML = `<p class="text-red-500">Erro ao carregar os dados.</p>`;
+        }
     }
-];
+}
+
+function renderCategories() {
+    const listContainer = document.getElementById('category-list');
+    if (!listContainer) return;
+
+    // Reset contents
+    listContainer.innerHTML = '<h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-3">Categorias</h3>';
+
+    allCategories.forEach(cat => {
+        const isActive = cat.id === currentCategory;
+
+        // Define styling classes based on active state
+        const colorClass = isActive
+            ? 'bg-primary/10 text-primary font-medium shadow-sm'
+            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200';
+
+        const iconStyle = isActive
+            ? 'filled text-[20px]'
+            : 'group-hover:scale-110 transition-transform text-[20px]';
+
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${colorClass}`;
+        a.onclick = (e) => {
+            e.preventDefault();
+            if (currentCategory !== cat.id) {
+                currentCategory = cat.id;
+                renderCategories(); // Re-render sidebar to update active state
+                renderOrganizations(); // Re-render cards
+            }
+        };
+
+        a.innerHTML = `
+            <span class="material-symbols-outlined ${iconStyle}">${cat.icon}</span>
+            ${cat.name}
+        `;
+        listContainer.appendChild(a);
+    });
+}
 
 function renderOrganizations() {
     const listContainer = document.getElementById('org-list');
@@ -33,14 +67,25 @@ function renderOrganizations() {
 
     if (!listContainer || !countDisplay) return;
 
-    countDisplay.textContent = organizations.length;
+    // Filter organizations
+    let filteredList = allOrganizations;
+    if (currentCategory !== 'all') {
+        filteredList = allOrganizations.filter(o => o.categoryId === currentCategory);
+    }
 
-    const cardsHtml = organizations.map((org, idx) => {
-        const tagsHtml = org.tags.map(tag =>
+    countDisplay.textContent = filteredList.length;
+
+    if (filteredList.length === 0) {
+        listContainer.innerHTML = '<p class="text-slate-500 py-10 text-center">Nenhuma loja encontrada nesta categoria.</p>';
+        return;
+    }
+
+    const cardsHtml = filteredList.map((org, idx) => {
+        const tagsHtml = (org.tags || []).map(tag =>
             `<span class="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium border border-slate-200 dark:border-slate-700">${tag}</span>`
         ).join('');
 
-        const featuredTag = idx === 0
+        const featuredTag = idx === 0 && currentCategory === 'all'
             ? `<div class="absolute top-2 left-2 px-2 py-1 bg-black/70 backdrop-blur-sm rounded text-[10px] font-bold text-white uppercase tracking-wider">Destaque</div>`
             : '';
 
@@ -101,5 +146,5 @@ function renderOrganizations() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    renderOrganizations();
+    init();
 });
