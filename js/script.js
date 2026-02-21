@@ -138,6 +138,57 @@ function renderStars(ratingStr) {
     return starsHtml;
 }
 
+// User vote storage
+const VOTES_KEY = 'campp_user_votes';
+
+function getUserVotes() {
+    try { return JSON.parse(localStorage.getItem(VOTES_KEY) || '{}'); } catch { return {}; }
+}
+
+function saveUserVote(orgId, stars) {
+    const votes = getUserVotes();
+    votes[orgId] = stars;
+    localStorage.setItem(VOTES_KEY, JSON.stringify(votes));
+}
+
+function getUserVote(orgId) {
+    return getUserVotes()[orgId] || 0;
+}
+
+function renderVoteWidget(orgId) {
+    const userVote = getUserVote(orgId);
+    if (userVote > 0) {
+        // Already voted — show their rating
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+            starsHtml += `<span class="material-symbols-outlined filled text-[18px] ${i <= userVote ? 'text-yellow-400' : 'text-slate-300 dark:text-slate-600'}" style="cursor:default">star</span>`;
+        }
+        return `
+          <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+            <span>Sua avaliação:</span>
+            <div class="flex items-center">${starsHtml}</div>
+            <button class="ml-2 text-slate-400 hover:text-red-400 transition-colors text-[11px] underline" onclick="clearUserVote('${orgId}')">(limpar)</button>
+          </div>`;
+    }
+    // Not yet voted — show interactive stars
+    let starsHtml = '';
+    for (let i = 1; i <= 5; i++) {
+        starsHtml += `<span
+          class="material-symbols-outlined text-[22px] text-slate-300 dark:text-slate-600 cursor-pointer transition-colors hover:text-yellow-400"
+          data-org-id="${orgId}" data-star="${i}"
+          onmouseenter="highlightVoteStars('${orgId}', ${i})"
+          onmouseleave="resetVoteStars('${orgId}')"
+          onclick="submitVote('${orgId}', ${i})"
+          id="vote-star-${orgId}-${i}">star</span>`;
+    }
+    return `
+      <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+        <span>Avalie:</span>
+        <div class="flex items-center" id="vote-widget-${orgId}">${starsHtml}</div>
+      </div>`;
+}
+
+
 function renderOrganizations() {
     const listContainer = document.getElementById('org-list');
     const countDisplay = document.getElementById('store-count');
@@ -220,6 +271,7 @@ function renderOrganizations() {
                         <div class="flex flex-wrap gap-2">
                             ${tagsHtml}
                         </div>
+                        ${renderVoteWidget(org.id)}
                     </div>
                     
                     <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
@@ -238,6 +290,41 @@ function renderOrganizations() {
     }).join('');
 
     listContainer.innerHTML = cardsHtml;
+}
+
+function highlightVoteStars(orgId, upTo) {
+    for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById(`vote-star-${orgId}-${i}`);
+        if (!el) continue;
+        if (i <= upTo) {
+            el.classList.add('text-yellow-400');
+            el.classList.remove('text-slate-300', 'dark:text-slate-600');
+        } else {
+            el.classList.remove('text-yellow-400');
+            el.classList.add('text-slate-300');
+        }
+    }
+}
+
+function resetVoteStars(orgId) {
+    for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById(`vote-star-${orgId}-${i}`);
+        if (!el) continue;
+        el.classList.remove('text-yellow-400');
+        el.classList.add('text-slate-300');
+    }
+}
+
+function submitVote(orgId, stars) {
+    saveUserVote(orgId, stars);
+    renderOrganizations();
+}
+
+function clearUserVote(orgId) {
+    const votes = getUserVotes();
+    delete votes[orgId];
+    localStorage.setItem(VOTES_KEY, JSON.stringify(votes));
+    renderOrganizations();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
