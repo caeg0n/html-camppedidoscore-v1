@@ -123,6 +123,21 @@ function renderTags() {
     });
 }
 
+function renderStars(ratingStr) {
+    const rating = parseFloat(ratingStr) || 0;
+    let starsHtml = '';
+    for (let i = 1; i <= 5; i++) {
+        if (rating >= i) {
+            starsHtml += '<span class="material-symbols-outlined filled text-[16px]">star</span>';
+        } else if (rating >= i - 0.5) {
+            starsHtml += '<span class="material-symbols-outlined filled text-[16px]">star_half</span>';
+        } else {
+            starsHtml += '<span class="material-symbols-outlined text-[16px] opacity-30">star</span>';
+        }
+    }
+    return starsHtml;
+}
+
 function renderOrganizations() {
     const listContainer = document.getElementById('org-list');
     const countDisplay = document.getElementById('store-count');
@@ -192,8 +207,8 @@ function renderOrganizations() {
                                 </div>
                             </div>
                             <div class="flex items-center gap-1 bg-yellow-400/10 text-yellow-600 dark:text-yellow-500 px-2 py-1 rounded-lg">
-                                <span class="material-symbols-outlined filled text-[16px]">star</span>
-                                <span class="text-sm font-bold">${org.rating}</span>
+                                <div class="flex items-center">${renderStars(org.rating)}</div>
+                                <span class="text-sm font-bold ml-1">${org.rating}</span>
                                 <span class="text-xs text-slate-400 dark:text-slate-500 font-normal">(${org.reviews})</span>
                             </div>
                         </div>
