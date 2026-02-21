@@ -59,6 +59,25 @@
             "image": "https://caeg0n.github.io/html-camppedidosbigbrasa-v1/assets/img/logo2.png",
             "logo": "https://caeg0n.github.io/html-camppedidosbigbrasa-v1/favicon.svg",
             "url": "https://caeg0n.github.io/html-camppedidosbigbrasa-v1/compras/"
+        },
+        {
+            "id": "burgcamp",
+            "name": "Burgcamp",
+            "categoryId": "Hamburgueria",
+            "category": "Hamburgueria",
+            "location": "Campinápolis, MT",
+            "rating": "4.9",
+            "reviews": "114",
+            "description": "O hambúrguer de verdade. Feito na hora com ingredientes selecionados e sabor inconfundível.",
+            "tags": [
+                "Hambúrguer",
+                "Artesanal",
+                "Entrega",
+                "Lanches"
+            ],
+            "image": "https://caeg0n.github.io/html-camppedidosburgcamp-v1/assets/img/logo2.png",
+            "logo": "https://caeg0n.github.io/html-camppedidosburgcamp-v1/favicon.svg",
+            "url": "https://caeg0n.github.io/html-camppedidosburgcamp-v1/compras/"
         }
     ]
 }
