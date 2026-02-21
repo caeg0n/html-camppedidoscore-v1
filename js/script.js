@@ -126,19 +126,18 @@ function renderTags() {
 function renderStars(ratingStr) {
     const rating = parseFloat(ratingStr) || 0;
     let starsHtml = '';
-    const base = 'display:inline;font-size:16px;vertical-align:middle;line-height:1;';
-    const filledStyle = base + "font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 20;";
     for (let i = 1; i <= 5; i++) {
         if (rating >= i) {
-            starsHtml += `<span class="material-symbols-outlined" style="${filledStyle}">star</span>`;
+            starsHtml += '<span class="material-symbols-outlined filled text-[16px]">star</span>';
         } else if (rating >= i - 0.5) {
-            starsHtml += `<span class="material-symbols-outlined" style="${filledStyle}">star_half</span>`;
+            starsHtml += '<span class="material-symbols-outlined filled text-[16px]">star_half</span>';
         } else {
-            starsHtml += `<span class="material-symbols-outlined" style="${base}opacity:0.3;">star</span>`;
+            starsHtml += '<span class="material-symbols-outlined text-[16px] opacity-30">star</span>';
         }
     }
     return starsHtml;
 }
+
 
 // User vote storage
 const VOTES_KEY = 'campp_user_votes';
@@ -262,7 +261,7 @@ function renderOrganizations() {
                             <div class="flex items-center gap-1 bg-yellow-400/10 text-yellow-600 dark:text-yellow-500 px-2 py-1 rounded-lg">
                                 <div class="flex items-center">${renderStars(org.rating)}</div>
                                 <span class="text-sm font-bold ml-1">${org.rating}</span>
-                                <span class="text-xs text-slate-400 dark:text-slate-500 font-normal">(${org.reviews})</span>
+                                <span class="text-xs text-slate-400 dark:text-slate-500 font-normal">(${getUserVote(org.id) > 0 ? Object.keys(getUserVotes()).filter(k => getUserVotes()[k] > 0).length + ' voto(s)' : org.reviews})</span>
                             </div>
                         </div>
                         
