@@ -37,32 +37,85 @@ function toOneDecimal(value) {
   return (Math.round(value * 10) / 10).toFixed(1);
 }
 
+function parseReviewsCount(reviewsLabel) {
+  if (reviewsLabel == null) return null;
+  const text = String(reviewsLabel).trim().toLowerCase();
+  if (!text) return null;
+
+  const compactMatch = text.match(/^([\d.,]+)\s*([km])$/);
+  if (compactMatch) {
+    const base = parseFloat(compactMatch[1].replace(',', '.'));
+    if (Number.isNaN(base)) return null;
+    if (compactMatch[2] === 'k') return Math.round(base * 1000);
+    if (compactMatch[2] === 'm') return Math.round(base * 1000000);
+  }
+
+  const plain = text.replace(/[^\d]/g, '');
+  if (!plain) return null;
+  const asNumber = parseInt(plain, 10);
+  if (Number.isNaN(asNumber)) return null;
+  return asNumber;
+}
+
+function formatVotesCount(count) {
+  return `${new Intl.NumberFormat('pt-BR').format(count)} voto(s)`;
+}
+
 function getOrgSummary(orgId) {
   return globalVoteSummary[orgId] || null;
 }
 
-function getRatingNumber(org) {
+function getRatingStats(org) {
+  const baseRating = parseFloat(org.rating) || 0;
+  const baseCount = parseReviewsCount(org.reviews);
   const summary = getOrgSummary(org.id);
-  if (voteProviderReady && summary && summary.count > 0) {
-    return summary.avg;
+
+  const liveCount = voteProviderReady && summary ? (summary.count || 0) : 0;
+  const liveAvg = voteProviderReady && summary ? (summary.avg || 0) : 0;
+
+  if (baseCount != null && baseCount > 0 && liveCount > 0) {
+    const totalCount = baseCount + liveCount;
+    const weightedAvg = ((baseRating * baseCount) + (liveAvg * liveCount)) / totalCount;
+    return {
+      avg: weightedAvg,
+      count: totalCount,
+      reviewsLabel: formatVotesCount(totalCount)
+    };
   }
-  return parseFloat(org.rating) || 0;
+
+  if (liveCount > 0) {
+    return {
+      avg: liveAvg,
+      count: liveCount,
+      reviewsLabel: formatVotesCount(liveCount)
+    };
+  }
+
+  if (baseCount != null && baseCount > 0) {
+    return {
+      avg: baseRating,
+      count: baseCount,
+      reviewsLabel: formatVotesCount(baseCount)
+    };
+  }
+
+  return {
+    avg: baseRating,
+    count: 0,
+    reviewsLabel: org.reviews
+  };
+}
+
+function getRatingNumber(org) {
+  return getRatingStats(org).avg;
 }
 
 function getRatingLabel(org) {
-  const summary = getOrgSummary(org.id);
-  if (voteProviderReady && summary && summary.count > 0) {
-    return toOneDecimal(summary.avg);
-  }
-  return org.rating;
+  return toOneDecimal(getRatingStats(org).avg);
 }
 
 function getReviewsLabel(org) {
-  const summary = getOrgSummary(org.id);
-  if (voteProviderReady && summary && summary.count > 0) {
-    return `${summary.count} voto(s)`;
-  }
-  return org.reviews;
+  return getRatingStats(org).reviewsLabel;
 }
 
 function toggleFavorite(orgId) {
