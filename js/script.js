@@ -205,19 +205,27 @@ async function refreshOrgVoteCache(orgId) {
 
 async function init() {
   try {
-    const res = await fetch('data.json');
-    const data = await res.json();
+    const data = await loadCoreData();
 
     allCategories = data.categories || [];
     allOrganizations = data.organizations || [];
 
     renderCategories();
     renderTags();
+    renderOrganizations();
 
     await initializeVotes();
-    await refreshAllVoteCaches();
-
     renderOrganizations();
+
+    if (voteProviderReady) {
+      refreshAllVoteCaches()
+        .then(() => {
+          renderOrganizations();
+        })
+        .catch((err) => {
+          console.error('Failed to refresh remote vote caches:', err);
+        });
+    }
   } catch (e) {
     console.error('Failed to load CMS data:', e);
     const listContainer = document.getElementById('org-list');
@@ -225,6 +233,48 @@ async function init() {
       listContainer.innerHTML = '<p class="text-red-500">Erro ao carregar os dados.</p>';
     }
   }
+}
+
+function dataCandidates() {
+  const candidates = new Set();
+  const path = window.location && window.location.pathname ? window.location.pathname : '/';
+  const basePath = path.replace(/[^/]*$/, '');
+
+  candidates.add('data.json');
+  candidates.add('./data.json');
+  if (basePath) {
+    candidates.add(`${basePath}data.json`);
+  }
+  candidates.add('/html-camppedidoscore-v1/data.json');
+  candidates.add('html-camppedidoscore-v1/data.json');
+
+  return Array.from(candidates);
+}
+
+async function loadCoreData() {
+  const candidates = dataCandidates();
+  let lastError = null;
+
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) {
+        lastError = new Error(`HTTP ${res.status} while loading ${url}`);
+        continue;
+      }
+
+      const payload = await res.json();
+      if (payload && Array.isArray(payload.organizations)) {
+        return payload;
+      }
+
+      lastError = new Error(`Invalid payload while loading ${url}`);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('Unable to load data.json');
 }
 
 function renderCategories() {
