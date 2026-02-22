@@ -385,19 +385,17 @@ function renderVoteWidget(orgId) {
       <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
         <span>Sua avaliação:</span>
         <div class="flex items-center">${starsHtml}</div>
-        <button class="ml-2 text-slate-400 hover:text-red-400 transition-colors text-[11px] underline" onclick="clearUserVote('${orgId}')">(limpar)</button>
+        <button type="button" class="ml-2 text-slate-400 hover:text-red-400 transition-colors text-[11px] underline" data-clear-vote="1" data-org-id="${orgId}">(limpar)</button>
       </div>`;
   }
 
   let starsHtml = '';
   for (let i = 1; i <= 5; i++) {
-    starsHtml += `<span
-      class="material-symbols-outlined text-[22px] text-slate-300 dark:text-slate-600 cursor-pointer transition-colors hover:text-yellow-400"
+    starsHtml += `<button type="button"
+      class="material-symbols-outlined text-[22px] text-slate-300 dark:text-slate-600 cursor-pointer transition-colors hover:text-yellow-400 bg-transparent border-0 p-0 leading-none"
       data-org-id="${orgId}" data-star="${i}"
-      onmouseenter="highlightVoteStars('${orgId}', ${i})"
-      onmouseleave="resetVoteStars('${orgId}')"
-      onclick="submitVote('${orgId}', ${i})"
-      id="vote-star-${orgId}-${i}">star</span>`;
+      data-vote-star="1"
+      id="vote-star-${orgId}-${i}">star</button>`;
   }
 
   return `
@@ -488,8 +486,8 @@ function renderOrganizations() {
 
           <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
             ${favoriteOrgs.has(org.id)
-      ? `<button class="text-red-500 hover:text-slate-400 transition-colors" onclick="toggleFavorite('${org.id}')"><span class="material-symbols-outlined filled">favorite</span></button>`
-      : `<button class="text-slate-400 hover:text-red-500 transition-colors" onclick="toggleFavorite('${org.id}')"><span class="material-symbols-outlined">favorite_border</span></button>`
+      ? `<button type="button" class="text-red-500 hover:text-slate-400 transition-colors" data-toggle-favorite="1" data-org-id="${org.id}"><span class="material-symbols-outlined filled">favorite</span></button>`
+      : `<button type="button" class="text-slate-400 hover:text-red-500 transition-colors" data-toggle-favorite="1" data-org-id="${org.id}"><span class="material-symbols-outlined">favorite_border</span></button>`
     }
             <a class="inline-flex items-center gap-2 bg-primary hover:bg-sky-500 text-white text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md shadow-primary/20 hover:shadow-primary/40" href="${org.url}" rel="noopener">
               Ver Cardápio
@@ -502,6 +500,78 @@ function renderOrganizations() {
   }).join('');
 
   listContainer.innerHTML = cardsHtml;
+}
+
+function bindOrganizationInteractions() {
+  const listContainer = document.getElementById('org-list');
+  if (!listContainer || listContainer.dataset.boundInteractions === '1') return;
+  listContainer.dataset.boundInteractions = '1';
+
+  listContainer.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+
+    const starEl = target.closest('[data-vote-star="1"]');
+    if (starEl) {
+      event.preventDefault();
+      const orgId = starEl.getAttribute('data-org-id');
+      const stars = parseInt(starEl.getAttribute('data-star') || '0', 10);
+      if (orgId && stars >= 1 && stars <= 5) {
+        submitVote(orgId, stars);
+      }
+      return;
+    }
+
+    const clearEl = target.closest('[data-clear-vote="1"]');
+    if (clearEl) {
+      event.preventDefault();
+      const orgId = clearEl.getAttribute('data-org-id');
+      if (orgId) {
+        clearUserVote(orgId);
+      }
+      return;
+    }
+
+    const favoriteEl = target.closest('[data-toggle-favorite="1"]');
+    if (favoriteEl) {
+      event.preventDefault();
+      const orgId = favoriteEl.getAttribute('data-org-id');
+      if (orgId) {
+        toggleFavorite(orgId);
+      }
+    }
+  });
+
+  listContainer.addEventListener('mouseover', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+
+    const starEl = target.closest('[data-vote-star="1"]');
+    if (!starEl) return;
+    const orgId = starEl.getAttribute('data-org-id');
+    const stars = parseInt(starEl.getAttribute('data-star') || '0', 10);
+    if (orgId && stars >= 1 && stars <= 5) {
+      highlightVoteStars(orgId, stars);
+    }
+  });
+
+  listContainer.addEventListener('mouseout', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+
+    const starEl = target.closest('[data-vote-star="1"]');
+    if (!starEl) return;
+
+    const orgId = starEl.getAttribute('data-org-id');
+    if (!orgId) return;
+
+    const related = event.relatedTarget;
+    if (related && related.closest && related.closest(`#vote-widget-${orgId}`)) {
+      return;
+    }
+
+    resetVoteStars(orgId);
+  });
 }
 
 function highlightVoteStars(orgId, upTo) {
@@ -566,5 +636,6 @@ async function clearUserVote(orgId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  bindOrganizationInteractions();
   init();
 });
