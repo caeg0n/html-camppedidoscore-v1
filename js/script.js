@@ -17,6 +17,12 @@ const userVoteLoadedByOrg = new Set();
 const orgVoteLoadPromises = new Map();
 let orgVoteObserver = null;
 let renderOrganizationsQueued = false;
+let votesInitResolved = false;
+
+function hasFirebaseVoteConfig() {
+  const cfg = window.CAMPP_FIREBASE_CONFIG;
+  return !!(cfg && cfg.apiKey && cfg.projectId && cfg.appId);
+}
 
 function scheduleOrganizationsRender() {
   if (renderOrganizationsQueued) return;
@@ -43,15 +49,23 @@ function shouldUseRemoteVoteData() {
 
 function isOrgSummaryLoading(orgId) {
   if (!orgId) return false;
-  return shouldUseRemoteVoteData() && !voteSummaryLoadedByOrg.has(orgId);
+  if (!hasFirebaseVoteConfig()) return false;
+  if (!votesInitResolved) return true;
+  if (!shouldUseRemoteVoteData()) return false;
+  return !voteSummaryLoadedByOrg.has(orgId);
 }
 
 function isOrgUserVoteLoading(orgId) {
   if (!orgId) return false;
-  return shouldUseRemoteVoteData() && !userVoteLoadedByOrg.has(orgId);
+  if (!hasFirebaseVoteConfig()) return false;
+  if (!votesInitResolved) return true;
+  if (!shouldUseRemoteVoteData()) return false;
+  return !userVoteLoadedByOrg.has(orgId);
 }
 
 function isOrgVoteInteractionReady(orgId) {
+  if (!orgId) return false;
+  if (hasFirebaseVoteConfig() && !voteProviderReady) return false;
   return !isOrgUserVoteLoading(orgId);
 }
 
@@ -304,6 +318,7 @@ function disableRemoteVotes(err) {
   voteProviderReady = false;
   globalVoteSummary = {};
   userVotesCache = getLocalVotes();
+  votesInitResolved = true;
   clearExternalLoadingPrefix('votes:');
   clearAllVoteResyncTimers();
   pendingVoteActions.clear();
@@ -322,6 +337,7 @@ function getRatingStats(org) {
   const baseRating = parseFloat(org.rating) || 0;
   const baseCount = parseReviewsCount(org.reviews);
   const summary = getOrgSummary(org.id);
+  const preferRemoteVotes = hasFirebaseVoteConfig();
 
   const hasLiveSummary = !!(voteProviderReady && summary && typeof summary === 'object');
   const liveCount = hasLiveSummary ? (summary.count || 0) : 0;
@@ -332,6 +348,14 @@ function getRatingStats(org) {
       avg: liveCount > 0 ? liveAvg : 0,
       count: liveCount,
       reviewsLabel: formatVotesCount(liveCount)
+    };
+  }
+
+  if (preferRemoteVotes) {
+    return {
+      avg: 0,
+      count: 0,
+      reviewsLabel: '--'
     };
   }
 
@@ -605,6 +629,7 @@ function setupLazyVoteLoading(filteredList) {
 async function init() {
   setExternalLoading('data:load', true, 'Carregando lojas...');
   renderOrganizationsSkeleton();
+  votesInitResolved = false;
   clearVoteLoadState();
 
   try {
@@ -619,6 +644,7 @@ async function init() {
 
     setExternalLoading('votes:init', true, 'Conectando avaliacoes...');
     await initializeVotes();
+    votesInitResolved = true;
     setExternalLoading('votes:init', false);
     if (!voteProviderReady) {
       clearVoteLoadState();
@@ -631,6 +657,7 @@ async function init() {
       listContainer.innerHTML = '<p class="text-red-500">Erro ao carregar os dados.</p>';
     }
   } finally {
+    votesInitResolved = true;
     setExternalLoading('data:load', false);
     setExternalLoading('votes:init', false);
   }
@@ -788,6 +815,17 @@ function renderRatingBadge(org) {
     `;
   }
 
+  const summary = getOrgSummary(org.id);
+  const hasLiveSummary = !!(shouldUseRemoteVoteData() && summary && typeof summary === 'object');
+  if (hasFirebaseVoteConfig() && !hasLiveSummary) {
+    return `
+      <div class="flex min-w-[160px] items-center justify-end gap-2 rounded-lg bg-slate-100/60 px-2 py-1 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500" aria-live="polite">
+        <span class="material-symbols-outlined text-[15px]">info</span>
+        <span class="text-xs font-medium">Sem dados Firebase</span>
+      </div>
+    `;
+  }
+
   return `
     <div class="flex min-w-[160px] items-center justify-end gap-1 bg-yellow-400/10 text-yellow-600 dark:text-yellow-500 px-2 py-1 rounded-lg">
       <div class="flex items-center">${renderStars(getRatingNumber(org))}</div>
@@ -821,6 +859,15 @@ function renderVoteWidget(orgId) {
         <span class="inline-flex h-4 w-4 items-center justify-center">
           <span class="material-symbols-outlined animate-spin text-[13px] leading-none text-sky-500">progress_activity</span>
         </span>
+      </div>
+    `;
+  }
+
+  if (hasFirebaseVoteConfig() && !voteProviderReady) {
+    return `
+      <div class="mt-2 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+        <span>Avaliação indisponível</span>
+        <span class="material-symbols-outlined text-[13px]">wifi_off</span>
       </div>
     `;
   }
@@ -1100,6 +1147,10 @@ async function submitVote(orgId, stars) {
     }
   }
 
+  if (hasFirebaseVoteConfig()) {
+    return;
+  }
+
   saveLocalVote(orgId, normalized);
   userVotesCache = getLocalVotes();
   renderOrganizations();
@@ -1127,6 +1178,10 @@ async function clearUserVote(orgId) {
       setOrgVotePending(orgId, false);
       renderOrganizations();
     }
+  }
+
+  if (hasFirebaseVoteConfig()) {
+    return;
   }
 
   clearLocalVote(orgId);
