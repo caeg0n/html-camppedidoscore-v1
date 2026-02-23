@@ -257,22 +257,32 @@ async function refreshAllVoteCaches() {
   const votes = {};
 
   for (const org of allOrganizations) {
-    try {
-      const [summary, userVote] = await Promise.all([
-        window.CamppVotes.getStoreSummary(org.id),
-        window.CamppVotes.getUserVote(org.id)
-      ]);
+    let summary = null;
+    let userVote = null;
 
+    try {
+      summary = await window.CamppVotes.getStoreSummary(org.id);
       summaries[org.id] = summary || { avg: 0, count: 0 };
-      if (userVote && userVote > 0) {
-        votes[org.id] = userVote;
-      }
     } catch (err) {
       if (isFirestoreOfflineError(err)) {
         disableRemoteVotes(err);
         return;
       }
-      console.error(`Failed to refresh votes for ${org.id}:`, err);
+      console.error(`Failed to refresh store summary for ${org.id}:`, err);
+      summaries[org.id] = { avg: 0, count: 0 };
+    }
+
+    try {
+      userVote = await window.CamppVotes.getUserVote(org.id);
+      if (userVote && userVote > 0) {
+        votes[org.id] = userVote;
+      }
+    } catch (err) {
+      if (isFirestoreOfflineError(err)) {
+        console.warn(`User vote unavailable for ${org.id}; keeping summary mode.`, err);
+        continue;
+      }
+      console.error(`Failed to refresh user vote for ${org.id}:`, err);
     }
   }
 
@@ -287,11 +297,19 @@ async function refreshOrgVoteCache(orgId) {
   }
 
   try {
-    const [summary, userVote] = await Promise.all([
-      window.CamppVotes.getStoreSummary(orgId),
-      window.CamppVotes.getUserVote(orgId)
-    ]);
+    const summary = await window.CamppVotes.getStoreSummary(orgId);
     globalVoteSummary[orgId] = summary || { avg: 0, count: 0 };
+  } catch (err) {
+    if (isFirestoreOfflineError(err)) {
+      disableRemoteVotes(err);
+      return;
+    }
+    console.error(`Failed to refresh vote summary for ${orgId}:`, err);
+    globalVoteSummary[orgId] = { avg: 0, count: 0 };
+  }
+
+  try {
+    const userVote = await window.CamppVotes.getUserVote(orgId);
     if (userVote && userVote > 0) {
       userVotesCache[orgId] = userVote;
     } else {
@@ -299,10 +317,10 @@ async function refreshOrgVoteCache(orgId) {
     }
   } catch (err) {
     if (isFirestoreOfflineError(err)) {
-      disableRemoteVotes(err);
+      console.warn(`User vote unavailable for ${orgId}; summary kept.`, err);
       return;
     }
-    console.error(`Failed to refresh vote cache for ${orgId}:`, err);
+    console.error(`Failed to refresh user vote cache for ${orgId}:`, err);
   }
 }
 

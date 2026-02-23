@@ -69,8 +69,16 @@
         this.app = this.resolveApp(config, appKey);
         this.setupAppCheck(this.app);
         this.auth = window.firebase.auth(this.app);
-        await this.ensureAnonymousUser();
         this.db = window.firebase.firestore(this.app);
+
+        try {
+          await this.ensureAnonymousUser();
+        } catch (authErr) {
+          // Keep summary reads available even when anonymous auth is not enabled.
+          console.warn("CamppVotes anonymous auth unavailable; summary read-only mode enabled.", authErr);
+          this.uid = "";
+        }
+
         this.ready = true;
         return true;
       } catch (err) {
