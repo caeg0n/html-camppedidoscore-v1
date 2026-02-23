@@ -6,6 +6,19 @@
     --campp-safe-area-bottom: var(--campp-safe-area-bottom-env);
 }
 
+html,
+body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+    html,
+    body {
+        overflow-x: hidden;
+    }
+}
+
 body {
     padding-bottom: calc(12px + var(--campp-safe-area-bottom));
 }
@@ -65,4 +78,9 @@ body {
 
 .material-symbols-outlined.filled {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+#org-list,
+#org-list > article {
+    min-width: 0;
 }

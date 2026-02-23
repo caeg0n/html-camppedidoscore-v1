@@ -882,7 +882,7 @@ function renderRatingBadge(org) {
   const waitingSummary = isOrgSummaryLoading(org.id);
   if (waitingSummary) {
     return `
-      <div class="flex min-w-[160px] items-center justify-end gap-2 rounded-lg bg-slate-100/60 px-2 py-1 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500" aria-busy="true">
+      <div class="flex w-full sm:w-auto min-w-0 sm:min-w-[160px] items-center justify-start sm:justify-end gap-2 rounded-lg bg-slate-100/60 px-2 py-1 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500" aria-busy="true">
         <span class="material-symbols-outlined animate-spin text-[15px]">progress_activity</span>
         <span class="inline-block h-3 w-8 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></span>
         <span class="inline-block h-3 w-16 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></span>
@@ -894,7 +894,7 @@ function renderRatingBadge(org) {
   const hasLiveSummary = !!(shouldUseRemoteVoteData() && summary && typeof summary === 'object');
   if (hasFirebaseVoteConfig() && !hasLiveSummary) {
     return `
-      <div class="flex min-w-[160px] items-center justify-end gap-2 rounded-lg bg-slate-100/60 px-2 py-1 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500" aria-live="polite">
+      <div class="flex w-full sm:w-auto min-w-0 sm:min-w-[160px] items-center justify-start sm:justify-end gap-2 rounded-lg bg-slate-100/60 px-2 py-1 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500" aria-live="polite">
         <span class="material-symbols-outlined text-[15px]">info</span>
         <span class="text-xs font-medium">Sem dados Firebase</span>
       </div>
@@ -902,7 +902,7 @@ function renderRatingBadge(org) {
   }
 
   return `
-    <div class="flex min-w-[160px] items-center justify-end gap-1 bg-yellow-400/10 text-yellow-600 dark:text-yellow-500 px-2 py-1 rounded-lg">
+    <div class="flex w-full sm:w-auto min-w-0 sm:min-w-[160px] flex-wrap items-center justify-start sm:justify-end gap-1 bg-yellow-400/10 text-yellow-600 dark:text-yellow-500 px-2 py-1 rounded-lg">
       <div class="flex items-center">${renderStars(getRatingNumber(org))}</div>
       <span class="text-sm font-bold ml-1">${getRatingLabel(org)}</span>
       <span class="text-xs text-slate-400 dark:text-slate-500 font-normal">(${getReviewsLabel(org)})</span>
@@ -922,7 +922,7 @@ function renderVoteWidget(orgId) {
 
   if (waitingUserVote && !pending) {
     return `
-      <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500" aria-busy="true">
+      <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-slate-400 dark:text-slate-500" aria-busy="true">
         <span>Avalie:</span>
         <div class="flex items-center opacity-60">
           <span class="material-symbols-outlined text-[22px] text-slate-300 dark:text-slate-600">star</span>
@@ -940,7 +940,7 @@ function renderVoteWidget(orgId) {
 
   if (hasFirebaseVoteConfig() && !voteProviderReady) {
     return `
-      <div class="mt-2 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+      <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
         <span>Avaliação indisponível</span>
         <span class="material-symbols-outlined text-[13px]">wifi_off</span>
       </div>
@@ -953,7 +953,7 @@ function renderVoteWidget(orgId) {
       starsHtml += `<span class="material-symbols-outlined filled text-[18px] ${i <= userVote ? 'text-yellow-400' : 'text-slate-300 dark:text-slate-600'}" style="cursor:default">star</span>`;
     }
     return `
-      <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+      <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
         <span>Sua avaliação:</span>
         <div class="flex items-center">${starsHtml}</div>
         <button type="button"
@@ -976,7 +976,7 @@ function renderVoteWidget(orgId) {
   }
 
   return `
-    <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500" ${pending ? 'aria-busy="true"' : ''}>
+    <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-slate-400 dark:text-slate-500" ${pending ? 'aria-busy="true"' : ''}>
       <span>Avalie:</span>
       <div class="flex items-center" id="vote-widget-${orgId}">${starsHtml}</div>
       ${pendingHtml}
@@ -1057,12 +1057,12 @@ function renderOrganizations() {
 
         <div class="flex flex-col flex-1 justify-between gap-4">
           <div class="space-y-3">
-            <div class="flex items-start justify-between">
-              <div class="flex items-center gap-3">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div class="flex items-center gap-3 min-w-0">
                 <img alt="${org.name} Logo" class="size-10 rounded-full bg-black border border-slate-100 dark:border-slate-700 shadow-sm" src="${org.logo}" onerror="this.src='favicon.svg'"/>
-                <div>
-                  <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors">${org.name}</h3>
-                  <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                <div class="min-w-0">
+                  <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors break-words">${org.name}</h3>
+                  <div class="flex flex-wrap items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                     <span>${org.category}</span>
                     <span class="size-1 bg-slate-300 rounded-full"></span>
                     <span>${org.location}</span>
@@ -1082,12 +1082,12 @@ function renderOrganizations() {
             ${renderVoteWidget(org.id)}
           </div>
 
-          <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/50">
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/50">
             ${favoriteOrgs.has(org.id)
       ? `<button type="button" class="text-red-500 hover:text-slate-400 transition-colors" data-toggle-favorite="1" data-org-id="${org.id}"><span class="material-symbols-outlined filled">favorite</span></button>`
       : `<button type="button" class="text-slate-400 hover:text-red-500 transition-colors" data-toggle-favorite="1" data-org-id="${org.id}"><span class="material-symbols-outlined">favorite_border</span></button>`
     }
-            <a class="inline-flex items-center gap-2 bg-primary hover:bg-sky-500 text-white text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md shadow-primary/20 hover:shadow-primary/40" href="${org.url}" rel="noopener">
+            <a class="inline-flex w-full sm:w-auto justify-center items-center gap-2 bg-primary hover:bg-sky-500 text-white text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md shadow-primary/20 hover:shadow-primary/40" href="${org.url}" rel="noopener">
               Ver Cardápio
               <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
             </a>
