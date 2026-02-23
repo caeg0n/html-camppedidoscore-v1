@@ -10,6 +10,84 @@ let userVotesCache = {};
 let globalVoteSummary = {};
 let remoteVotesDisabled = false;
 const externalLoadingTasks = new Map();
+const voteResyncTimersByOrg = new Map();
+
+function clearVoteResyncTimers(orgId) {
+  const timers = voteResyncTimersByOrg.get(orgId) || [];
+  for (const timerId of timers) {
+    clearTimeout(timerId);
+  }
+  voteResyncTimersByOrg.delete(orgId);
+}
+
+function clearAllVoteResyncTimers() {
+  for (const orgId of voteResyncTimersByOrg.keys()) {
+    clearVoteResyncTimers(orgId);
+  }
+}
+
+function scheduleVoteSummaryResync(orgId) {
+  if (!orgId) return;
+  clearVoteResyncTimers(orgId);
+
+  const delays = [1200, 3000];
+  const timers = delays.map((delay) => setTimeout(async () => {
+    if (!voteProviderReady) return;
+    try {
+      await refreshOrgVoteCache(orgId);
+      renderOrganizations();
+    } catch (err) {
+      console.error(`Background vote summary resync failed for ${orgId}:`, err);
+    }
+  }, delay));
+
+  voteResyncTimersByOrg.set(orgId, timers);
+}
+
+function toSafeNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function toSafeInt(value, fallback = 0) {
+  const num = parseInt(value, 10);
+  return Number.isNaN(num) ? fallback : num;
+}
+
+function applyOptimisticVoteUpdate(orgId, nextVote) {
+  const previousVote = toSafeInt(getUserVote(orgId), 0);
+  const normalizedNextVote = Math.max(0, Math.min(5, toSafeInt(nextVote, 0)));
+
+  const current = globalVoteSummary[orgId] || { avg: 0, count: 0, sum: 0 };
+  let count = Math.max(0, toSafeInt(current.count, 0));
+  let sum = toSafeNumber(current.sum, NaN);
+  if (!Number.isFinite(sum)) {
+    sum = toSafeNumber(current.avg, 0) * count;
+  }
+
+  if (previousVote > 0 && normalizedNextVote === 0) {
+    count = Math.max(0, count - 1);
+    sum = Math.max(0, sum - previousVote);
+  } else if (previousVote > 0 && normalizedNextVote > 0) {
+    sum = Math.max(0, sum - previousVote + normalizedNextVote);
+  } else if (previousVote === 0 && normalizedNextVote > 0) {
+    count += 1;
+    sum = Math.max(0, sum + normalizedNextVote);
+  }
+
+  const avg = count > 0 ? Number((sum / count).toFixed(4)) : 0;
+  globalVoteSummary[orgId] = {
+    avg,
+    count,
+    sum: Math.max(0, Math.round(sum))
+  };
+
+  if (normalizedNextVote > 0) {
+    userVotesCache[orgId] = normalizedNextVote;
+  } else {
+    delete userVotesCache[orgId];
+  }
+}
 
 function ensureExternalLoadingBanner() {
   let banner = document.getElementById('external-loading-state');
@@ -161,6 +239,7 @@ function disableRemoteVotes(err) {
   globalVoteSummary = {};
   userVotesCache = getLocalVotes();
   clearExternalLoadingPrefix('votes:');
+  clearAllVoteResyncTimers();
   if (!remoteVotesDisabled) {
     remoteVotesDisabled = true;
     if (err) {
@@ -763,8 +842,9 @@ async function submitVote(orgId, stars) {
     setExternalLoading(loadingKey, true, 'Atualizando sua avaliacao...');
     try {
       await window.CamppVotes.upsertVote(orgId, normalized);
-      await refreshOrgVoteCache(orgId);
+      applyOptimisticVoteUpdate(orgId, normalized);
       renderOrganizations();
+      scheduleVoteSummaryResync(orgId);
       return;
     } catch (err) {
       if (isFirestoreOfflineError(err)) {
@@ -789,8 +869,9 @@ async function clearUserVote(orgId) {
     setExternalLoading(loadingKey, true, 'Removendo sua avaliacao...');
     try {
       await window.CamppVotes.clearVote(orgId);
-      await refreshOrgVoteCache(orgId);
+      applyOptimisticVoteUpdate(orgId, 0);
       renderOrganizations();
+      scheduleVoteSummaryResync(orgId);
       return;
     } catch (err) {
       if (isFirestoreOfflineError(err)) {
