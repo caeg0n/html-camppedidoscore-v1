@@ -21,6 +21,7 @@ let votesInitResolved = false;
 let safeAreaListenersBound = false;
 
 const MAX_NAV_SAFE_INSET_PX = 96;
+const MAX_TOP_SAFE_INSET_PX = 72;
 
 function hasFirebaseVoteConfig() {
   const cfg = window.CAMPP_FIREBASE_CONFIG;
@@ -60,13 +61,28 @@ function getVisualViewportBottomInset() {
   return rawInset;
 }
 
+function getVisualViewportTopInset() {
+  if (!window.visualViewport) return 0;
+  const vv = window.visualViewport;
+  const rawInset = vv.offsetTop;
+  if (!Number.isFinite(rawInset) || rawInset <= 0) return 0;
+
+  // Ignore outliers unrelated to status bar/cutout.
+  if (rawInset > MAX_TOP_SAFE_INSET_PX) return 0;
+  return rawInset;
+}
+
 function updateSafeAreaInsets() {
   const root = document.documentElement;
   if (!root) return;
 
+  const envTop = readRootCssPxVar('--campp-safe-area-top-env');
+  const viewportTop = getVisualViewportTopInset();
+  const topInset = Math.max(envTop, viewportTop, 0);
   const envBottom = readRootCssPxVar('--campp-safe-area-bottom-env');
   const viewportBottom = getVisualViewportBottomInset();
   const bottomInset = Math.max(envBottom, viewportBottom, 0);
+  root.style.setProperty('--campp-safe-area-top', `${Math.round(topInset)}px`);
   root.style.setProperty('--campp-safe-area-bottom', `${Math.round(bottomInset)}px`);
 }
 

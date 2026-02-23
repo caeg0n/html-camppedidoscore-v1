@@ -10,6 +10,10 @@ body {
     padding-bottom: calc(12px + var(--campp-safe-area-bottom));
 }
 
+.campp-safe-header {
+    padding-top: var(--campp-safe-area-top);
+}
+
 .campp-safe-fixed-bottom {
     bottom: calc(1rem + var(--campp-safe-area-bottom));
 }
