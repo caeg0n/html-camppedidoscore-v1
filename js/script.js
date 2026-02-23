@@ -115,19 +115,19 @@ function ensureExternalLoadingBanner() {
   let banner = document.getElementById('external-loading-state');
   if (banner) return banner;
 
-  const listContainer = document.getElementById('org-list');
-  if (!listContainer || !listContainer.parentElement) return null;
+  const body = document.body;
+  if (!body) return null;
 
   banner = document.createElement('div');
   banner.id = 'external-loading-state';
-  banner.className = 'hidden mb-4 inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300';
+  banner.className = 'pointer-events-none fixed right-4 bottom-4 z-50 inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-700 shadow-sm shadow-slate-900/10 opacity-0 translate-y-2 transition-all duration-200 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300';
   banner.setAttribute('role', 'status');
   banner.setAttribute('aria-live', 'polite');
   banner.innerHTML = `
     <span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
     <span data-loading-message="1">Carregando dados externos...</span>
   `;
-  listContainer.parentElement.insertBefore(banner, listContainer);
+  body.appendChild(banner);
   return banner;
 }
 
@@ -136,7 +136,7 @@ function updateExternalLoadingBanner() {
   if (!banner) return;
 
   if (externalLoadingTasks.size === 0) {
-    banner.classList.add('hidden');
+    banner.classList.add('opacity-0', 'translate-y-2');
     return;
   }
 
@@ -145,7 +145,7 @@ function updateExternalLoadingBanner() {
   if (textEl) {
     textEl.textContent = message;
   }
-  banner.classList.remove('hidden');
+  banner.classList.remove('opacity-0', 'translate-y-2');
 }
 
 function setExternalLoading(key, active, message) {
@@ -614,13 +614,11 @@ function renderStars(ratingValue) {
 function renderVoteWidget(orgId) {
   const userVote = getUserVote(orgId);
   const pending = isOrgVotePending(orgId);
-  const pendingMessage = getOrgVotePendingMessage(orgId) || 'Atualizando...';
-  const pendingHtml = pending
-    ? `<span class="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
-        <span class="material-symbols-outlined animate-spin text-[13px] leading-none">progress_activity</span>
-        ${pendingMessage}
-      </span>`
-    : '';
+  const pendingTitle = pending ? (getOrgVotePendingMessage(orgId) || 'Atualizando...') : '';
+  const pendingHtml = `
+    <span class="inline-flex h-4 w-4 items-center justify-center" title="${pendingTitle}">
+      <span class="material-symbols-outlined text-[13px] leading-none transition-opacity ${pending ? 'animate-spin opacity-100 text-sky-500' : 'opacity-0'}">progress_activity</span>
+    </span>`;
 
   if (userVote > 0) {
     let starsHtml = '';
@@ -631,12 +629,12 @@ function renderVoteWidget(orgId) {
       <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
         <span>Sua avaliação:</span>
         <div class="flex items-center">${starsHtml}</div>
-        ${pendingHtml}
         <button type="button"
           class="ml-2 text-slate-400 hover:text-red-400 transition-colors text-[11px] underline ${pending ? 'opacity-50 cursor-wait pointer-events-none' : ''}"
           data-clear-vote="1"
           data-org-id="${orgId}"
           ${pending ? 'disabled aria-disabled="true"' : ''}>(limpar)</button>
+        ${pendingHtml}
       </div>`;
   }
 
@@ -724,7 +722,7 @@ function renderOrganizations() {
       : '';
 
     return `
-      <article class="glass-card rounded-xl p-4 sm:p-5 flex flex-col md:flex-row gap-5 hover:-translate-y-1 hover:shadow-lg transition-all duration-300 group">
+      <article class="glass-card rounded-xl p-4 sm:p-5 flex flex-col md:flex-row gap-5 hover:shadow-lg transition-shadow duration-300 group">
         <div class="w-full md:w-64 h-48 md:h-auto shrink-0 rounded-lg overflow-hidden relative bg-slate-200 dark:bg-slate-800">
           <div class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-105" style="background-image: url('${org.image}')"></div>
           ${featuredTag}
@@ -885,7 +883,6 @@ async function submitVote(orgId, stars) {
     try {
       await window.CamppVotes.upsertVote(orgId, normalized);
       applyOptimisticVoteUpdate(orgId, normalized);
-      renderOrganizations();
       scheduleVoteSummaryResync(orgId);
       return;
     } catch (err) {
@@ -915,7 +912,6 @@ async function clearUserVote(orgId) {
     try {
       await window.CamppVotes.clearVote(orgId);
       applyOptimisticVoteUpdate(orgId, 0);
-      renderOrganizations();
       scheduleVoteSummaryResync(orgId);
       return;
     } catch (err) {
