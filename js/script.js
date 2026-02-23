@@ -18,6 +18,9 @@ const orgVoteLoadPromises = new Map();
 let orgVoteObserver = null;
 let renderOrganizationsQueued = false;
 let votesInitResolved = false;
+let safeAreaListenersBound = false;
+
+const MAX_NAV_SAFE_INSET_PX = 96;
 
 function hasFirebaseVoteConfig() {
   const cfg = window.CAMPP_FIREBASE_CONFIG;
@@ -31,6 +34,62 @@ function scheduleOrganizationsRender() {
     renderOrganizationsQueued = false;
     renderOrganizations();
   });
+}
+
+function toPxNumber(value) {
+  const num = parseFloat(String(value || '').replace('px', '').trim());
+  return Number.isFinite(num) ? num : 0;
+}
+
+function readRootCssPxVar(name) {
+  try {
+    return toPxNumber(getComputedStyle(document.documentElement).getPropertyValue(name));
+  } catch {
+    return 0;
+  }
+}
+
+function getVisualViewportBottomInset() {
+  if (!window.visualViewport) return 0;
+  const vv = window.visualViewport;
+  const rawInset = window.innerHeight - (vv.height + vv.offsetTop);
+  if (!Number.isFinite(rawInset) || rawInset <= 0) return 0;
+
+  // Ignore large deltas caused by keyboard open; keep navbar-safe adjustments only.
+  if (rawInset > MAX_NAV_SAFE_INSET_PX) return 0;
+  return rawInset;
+}
+
+function updateSafeAreaInsets() {
+  const root = document.documentElement;
+  if (!root) return;
+
+  const envBottom = readRootCssPxVar('--campp-safe-area-bottom-env');
+  const viewportBottom = getVisualViewportBottomInset();
+  const bottomInset = Math.max(envBottom, viewportBottom, 0);
+  root.style.setProperty('--campp-safe-area-bottom', `${Math.round(bottomInset)}px`);
+}
+
+function scheduleSafeAreaRefresh() {
+  if (typeof window.requestAnimationFrame === 'function') {
+    window.requestAnimationFrame(updateSafeAreaInsets);
+    return;
+  }
+  setTimeout(updateSafeAreaInsets, 0);
+}
+
+function setupSafeAreaInsets() {
+  if (safeAreaListenersBound) return;
+  safeAreaListenersBound = true;
+
+  updateSafeAreaInsets();
+  window.addEventListener('resize', scheduleSafeAreaRefresh, { passive: true });
+  window.addEventListener('orientationchange', scheduleSafeAreaRefresh, { passive: true });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', scheduleSafeAreaRefresh, { passive: true });
+    window.visualViewport.addEventListener('scroll', scheduleSafeAreaRefresh, { passive: true });
+  }
 }
 
 function clearVoteLoadState() {
@@ -178,7 +237,7 @@ function ensureExternalLoadingBanner() {
 
   banner = document.createElement('div');
   banner.id = 'external-loading-state';
-  banner.className = 'pointer-events-none fixed right-4 bottom-4 z-50 inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-700 shadow-sm shadow-slate-900/10 opacity-0 translate-y-2 transition-all duration-200 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300';
+  banner.className = 'pointer-events-none fixed right-4 campp-safe-fixed-bottom z-50 inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-700 shadow-sm shadow-slate-900/10 opacity-0 translate-y-2 transition-all duration-200 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300';
   banner.setAttribute('role', 'status');
   banner.setAttribute('aria-live', 'polite');
   banner.innerHTML = `
@@ -1190,6 +1249,7 @@ async function clearUserVote(orgId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupSafeAreaInsets();
   bindOrganizationInteractions();
   init();
 });

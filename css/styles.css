@@ -1,3 +1,19 @@
+/* Safe-area handling for phones with system bars/notches */
+:root {
+    --campp-safe-area-top-env: env(safe-area-inset-top, 0px);
+    --campp-safe-area-bottom-env: env(safe-area-inset-bottom, 0px);
+    --campp-safe-area-top: var(--campp-safe-area-top-env);
+    --campp-safe-area-bottom: var(--campp-safe-area-bottom-env);
+}
+
+body {
+    padding-bottom: calc(12px + var(--campp-safe-area-bottom));
+}
+
+.campp-safe-fixed-bottom {
+    bottom: calc(1rem + var(--campp-safe-area-bottom));
+}
+
 /* Custom scrollbar for sidebar */
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
