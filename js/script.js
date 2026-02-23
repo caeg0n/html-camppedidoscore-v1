@@ -124,6 +124,16 @@ function formatVotesCount(count) {
   return `${new Intl.NumberFormat('pt-BR').format(count)} voto(s)`;
 }
 
+function getBaseReviewsLabel(org, baseCount) {
+  if (org && org.reviews != null && String(org.reviews).trim()) {
+    return String(org.reviews).trim();
+  }
+  if (baseCount != null && baseCount > 0) {
+    return `${new Intl.NumberFormat('pt-BR').format(baseCount)} avaliacao(oes)`;
+  }
+  return '';
+}
+
 function getOrgSummary(orgId) {
   return globalVoteSummary[orgId] || null;
 }
@@ -169,16 +179,6 @@ function getRatingStats(org) {
   const liveCount = voteProviderReady && summary ? (summary.count || 0) : 0;
   const liveAvg = voteProviderReady && summary ? (summary.avg || 0) : 0;
 
-  if (baseCount != null && baseCount > 0 && liveCount > 0) {
-    const totalCount = baseCount + liveCount;
-    const weightedAvg = ((baseRating * baseCount) + (liveAvg * liveCount)) / totalCount;
-    return {
-      avg: weightedAvg,
-      count: totalCount,
-      reviewsLabel: formatVotesCount(totalCount)
-    };
-  }
-
   if (liveCount > 0) {
     return {
       avg: liveAvg,
@@ -191,7 +191,7 @@ function getRatingStats(org) {
     return {
       avg: baseRating,
       count: baseCount,
-      reviewsLabel: formatVotesCount(baseCount)
+      reviewsLabel: getBaseReviewsLabel(org, baseCount)
     };
   }
 
@@ -476,11 +476,12 @@ function renderTags() {
 
 function renderStars(ratingValue) {
   const rating = typeof ratingValue === 'number' ? ratingValue : (parseFloat(ratingValue) || 0);
+  const normalized = Math.max(0, Math.min(5, Math.round(rating * 2) / 2));
   let starsHtml = '';
   for (let i = 1; i <= 5; i++) {
-    if (rating >= i) {
+    if (normalized >= i) {
       starsHtml += '<span class="material-symbols-outlined filled text-[16px]">star</span>';
-    } else if (rating >= i - 0.5) {
+    } else if (normalized >= i - 0.5) {
       starsHtml += '<span class="material-symbols-outlined filled text-[16px]">star_half</span>';
     } else {
       starsHtml += '<span class="material-symbols-outlined text-[16px] opacity-30">star</span>';
