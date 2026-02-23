@@ -9,6 +9,68 @@ let voteProviderReady = false;
 let userVotesCache = {};
 let globalVoteSummary = {};
 let remoteVotesDisabled = false;
+const externalLoadingTasks = new Map();
+
+function ensureExternalLoadingBanner() {
+  let banner = document.getElementById('external-loading-state');
+  if (banner) return banner;
+
+  const listContainer = document.getElementById('org-list');
+  if (!listContainer || !listContainer.parentElement) return null;
+
+  banner = document.createElement('div');
+  banner.id = 'external-loading-state';
+  banner.className = 'hidden mb-4 inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300';
+  banner.setAttribute('role', 'status');
+  banner.setAttribute('aria-live', 'polite');
+  banner.innerHTML = `
+    <span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+    <span data-loading-message="1">Carregando dados externos...</span>
+  `;
+  listContainer.parentElement.insertBefore(banner, listContainer);
+  return banner;
+}
+
+function updateExternalLoadingBanner() {
+  const banner = ensureExternalLoadingBanner();
+  if (!banner) return;
+
+  if (externalLoadingTasks.size === 0) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  const message = Array.from(externalLoadingTasks.values())[0] || 'Carregando dados externos...';
+  const textEl = banner.querySelector('[data-loading-message="1"]');
+  if (textEl) {
+    textEl.textContent = message;
+  }
+  banner.classList.remove('hidden');
+}
+
+function setExternalLoading(key, active, message) {
+  if (!key) return;
+  if (active) {
+    externalLoadingTasks.set(key, message || 'Carregando dados externos...');
+  } else {
+    externalLoadingTasks.delete(key);
+  }
+  updateExternalLoadingBanner();
+}
+
+function clearExternalLoadingPrefix(prefix) {
+  if (!prefix) return;
+  let changed = false;
+  for (const key of externalLoadingTasks.keys()) {
+    if (String(key).startsWith(prefix)) {
+      externalLoadingTasks.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    updateExternalLoadingBanner();
+  }
+}
 
 function getLocalVotes() {
   try {
@@ -88,6 +150,7 @@ function disableRemoteVotes(err) {
   voteProviderReady = false;
   globalVoteSummary = {};
   userVotesCache = getLocalVotes();
+  clearExternalLoadingPrefix('votes:');
   if (!remoteVotesDisabled) {
     remoteVotesDisabled = true;
     if (err) {
@@ -244,6 +307,9 @@ async function refreshOrgVoteCache(orgId) {
 }
 
 async function init() {
+  setExternalLoading('data:load', true, 'Carregando lojas...');
+  renderOrganizationsSkeleton();
+
   try {
     const data = await loadCoreData();
 
@@ -254,16 +320,22 @@ async function init() {
     renderTags();
     renderOrganizations();
 
+    setExternalLoading('votes:init', true, 'Conectando avaliacoes...');
     await initializeVotes();
+    setExternalLoading('votes:init', false);
     renderOrganizations();
 
     if (voteProviderReady) {
+      setExternalLoading('votes:sync', true, 'Sincronizando avaliacoes...');
       refreshAllVoteCaches()
         .then(() => {
           renderOrganizations();
         })
         .catch((err) => {
           console.error('Failed to refresh remote vote caches:', err);
+        })
+        .finally(() => {
+          setExternalLoading('votes:sync', false);
         });
     }
   } catch (e) {
@@ -272,6 +344,9 @@ async function init() {
     if (listContainer) {
       listContainer.innerHTML = '<p class="text-red-500">Erro ao carregar os dados.</p>';
     }
+  } finally {
+    setExternalLoading('data:load', false);
+    setExternalLoading('votes:init', false);
   }
 }
 
@@ -443,6 +518,30 @@ function renderVoteWidget(orgId) {
       <span>Avalie:</span>
       <div class="flex items-center" id="vote-widget-${orgId}">${starsHtml}</div>
     </div>`;
+}
+
+function renderOrganizationsSkeleton() {
+  const listContainer = document.getElementById('org-list');
+  const countDisplay = document.getElementById('store-count');
+  if (!listContainer || !countDisplay) return;
+
+  countDisplay.textContent = '...';
+  const skeletonCard = `
+    <article class="glass-card rounded-xl p-4 sm:p-5 flex flex-col md:flex-row gap-5 animate-pulse">
+      <div class="w-full md:w-64 h-48 md:h-auto shrink-0 rounded-lg bg-slate-200 dark:bg-slate-800"></div>
+      <div class="flex flex-col flex-1 gap-4">
+        <div class="space-y-3">
+          <div class="h-6 w-56 rounded bg-slate-200 dark:bg-slate-800"></div>
+          <div class="h-4 w-40 rounded bg-slate-200 dark:bg-slate-800"></div>
+          <div class="h-4 w-full rounded bg-slate-200 dark:bg-slate-800"></div>
+          <div class="h-4 w-5/6 rounded bg-slate-200 dark:bg-slate-800"></div>
+        </div>
+        <div class="h-10 w-40 rounded bg-slate-200 dark:bg-slate-800"></div>
+      </div>
+    </article>
+  `;
+
+  listContainer.innerHTML = `${skeletonCard}${skeletonCard}${skeletonCard}`;
 }
 
 function renderOrganizations() {
@@ -641,6 +740,8 @@ async function submitVote(orgId, stars) {
   const normalized = Math.max(1, Math.min(5, parseInt(stars, 10) || 0));
 
   if (voteProviderReady) {
+    const loadingKey = `votes:submit:${orgId}`;
+    setExternalLoading(loadingKey, true, 'Atualizando sua avaliacao...');
     try {
       await window.CamppVotes.upsertVote(orgId, normalized);
       await refreshOrgVoteCache(orgId);
@@ -653,6 +754,8 @@ async function submitVote(orgId, stars) {
         console.error('Remote vote failed, falling back to localStorage:', err);
         disableRemoteVotes(err);
       }
+    } finally {
+      setExternalLoading(loadingKey, false);
     }
   }
 
@@ -663,6 +766,8 @@ async function submitVote(orgId, stars) {
 
 async function clearUserVote(orgId) {
   if (voteProviderReady) {
+    const loadingKey = `votes:clear:${orgId}`;
+    setExternalLoading(loadingKey, true, 'Removendo sua avaliacao...');
     try {
       await window.CamppVotes.clearVote(orgId);
       await refreshOrgVoteCache(orgId);
@@ -675,6 +780,8 @@ async function clearUserVote(orgId) {
         console.error('Remote clear vote failed, falling back to localStorage:', err);
         disableRemoteVotes(err);
       }
+    } finally {
+      setExternalLoading(loadingKey, false);
     }
   }
 
