@@ -73,8 +73,14 @@ function isFirestoreOfflineError(err) {
   return (
     code.includes('unavailable') ||
     code.includes('network-request-failed') ||
+    code.includes('permission-denied') ||
+    code.includes('unauthenticated') ||
+    code.includes('failed-precondition') ||
     message.includes('client is offline') ||
-    message.includes('network')
+    message.includes('network') ||
+    message.includes('app check') ||
+    message.includes('appcheck') ||
+    message.includes('permission')
   );
 }
 
@@ -166,7 +172,7 @@ async function initializeVotes() {
 
   try {
     const appKey = window.CAMPP_APP_KEY || 'html-camppedidoscore-v1';
-    voteProviderReady = !!window.CamppVotes.init(window.CAMPP_FIREBASE_CONFIG, appKey);
+    voteProviderReady = !!(await window.CamppVotes.init(window.CAMPP_FIREBASE_CONFIG, appKey));
   } catch (err) {
     console.error('Failed to initialize CamppVotes:', err);
     voteProviderReady = false;

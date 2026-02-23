@@ -8,5 +8,6 @@
   measurementId: ""
 };
 
+window.CAMPP_APP_CHECK_SITE_KEY = "6LdWXHQsAAAAAPwpjtaIpfJh_5egu_l-imRIGIbi";
 window.CAMPP_APP_KEY = "html-camppedidoscore-v1";
 
