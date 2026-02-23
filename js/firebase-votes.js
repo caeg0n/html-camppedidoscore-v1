@@ -23,6 +23,18 @@
     return num;
   }
 
+  function isOfflineError(err) {
+    if (!err) return false;
+    const code = String(err.code || "").toLowerCase();
+    const message = String(err.message || "").toLowerCase();
+    return (
+      code.includes("unavailable") ||
+      code.includes("network-request-failed") ||
+      message.includes("client is offline") ||
+      message.includes("network")
+    );
+  }
+
   const CamppVotes = {
     ready: false,
     appKey: "",
@@ -76,6 +88,9 @@
         if (!snap.exists) return null;
         return toInt(snap.data().stars);
       } catch (err) {
+        if (isOfflineError(err)) {
+          throw err;
+        }
         console.error("CamppVotes getUserVote failed:", err);
         return null;
       }
@@ -118,6 +133,9 @@
         if (count === 0) return { avg: 0, count: 0 };
         return { avg: sum / count, count: count };
       } catch (err) {
+        if (isOfflineError(err)) {
+          throw err;
+        }
         console.error("CamppVotes getStoreSummary failed:", err);
         return { avg: 0, count: 0 };
       }

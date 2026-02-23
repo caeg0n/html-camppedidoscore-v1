@@ -8,6 +8,7 @@ const LOCAL_VOTES_KEY = 'campp_user_votes';
 let voteProviderReady = false;
 let userVotesCache = {};
 let globalVoteSummary = {};
+let remoteVotesDisabled = false;
 
 function getLocalVotes() {
   try {
@@ -63,6 +64,32 @@ function formatVotesCount(count) {
 
 function getOrgSummary(orgId) {
   return globalVoteSummary[orgId] || null;
+}
+
+function isFirestoreOfflineError(err) {
+  if (!err) return false;
+  const code = String(err.code || '').toLowerCase();
+  const message = String(err.message || '').toLowerCase();
+  return (
+    code.includes('unavailable') ||
+    code.includes('network-request-failed') ||
+    message.includes('client is offline') ||
+    message.includes('network')
+  );
+}
+
+function disableRemoteVotes(err) {
+  voteProviderReady = false;
+  globalVoteSummary = {};
+  userVotesCache = getLocalVotes();
+  if (!remoteVotesDisabled) {
+    remoteVotesDisabled = true;
+    if (err) {
+      console.warn('CamppVotes indisponivel. Usando modo local (localStorage).', err.message || err);
+    } else {
+      console.warn('CamppVotes indisponivel. Usando modo local (localStorage).');
+    }
+  }
 }
 
 function getRatingStats(org) {
@@ -130,6 +157,7 @@ function toggleFavorite(orgId) {
 
 async function initializeVotes() {
   voteProviderReady = false;
+  remoteVotesDisabled = false;
 
   if (!window.CamppVotes || !window.CAMPP_FIREBASE_CONFIG) {
     userVotesCache = getLocalVotes();
@@ -159,23 +187,25 @@ async function refreshAllVoteCaches() {
   const summaries = {};
   const votes = {};
 
-  await Promise.all(
-    allOrganizations.map(async (org) => {
-      try {
-        const [summary, userVote] = await Promise.all([
-          window.CamppVotes.getStoreSummary(org.id),
-          window.CamppVotes.getUserVote(org.id)
-        ]);
+  for (const org of allOrganizations) {
+    try {
+      const [summary, userVote] = await Promise.all([
+        window.CamppVotes.getStoreSummary(org.id),
+        window.CamppVotes.getUserVote(org.id)
+      ]);
 
-        summaries[org.id] = summary || { avg: 0, count: 0 };
-        if (userVote && userVote > 0) {
-          votes[org.id] = userVote;
-        }
-      } catch (err) {
-        console.error(`Failed to refresh votes for ${org.id}:`, err);
+      summaries[org.id] = summary || { avg: 0, count: 0 };
+      if (userVote && userVote > 0) {
+        votes[org.id] = userVote;
       }
-    })
-  );
+    } catch (err) {
+      if (isFirestoreOfflineError(err)) {
+        disableRemoteVotes(err);
+        return;
+      }
+      console.error(`Failed to refresh votes for ${org.id}:`, err);
+    }
+  }
 
   globalVoteSummary = summaries;
   userVotesCache = votes;
@@ -199,6 +229,10 @@ async function refreshOrgVoteCache(orgId) {
       delete userVotesCache[orgId];
     }
   } catch (err) {
+    if (isFirestoreOfflineError(err)) {
+      disableRemoteVotes(err);
+      return;
+    }
     console.error(`Failed to refresh vote cache for ${orgId}:`, err);
   }
 }
@@ -607,8 +641,12 @@ async function submitVote(orgId, stars) {
       renderOrganizations();
       return;
     } catch (err) {
-      console.error('Remote vote failed, falling back to localStorage:', err);
-      voteProviderReady = false;
+      if (isFirestoreOfflineError(err)) {
+        disableRemoteVotes(err);
+      } else {
+        console.error('Remote vote failed, falling back to localStorage:', err);
+        disableRemoteVotes(err);
+      }
     }
   }
 
@@ -625,8 +663,12 @@ async function clearUserVote(orgId) {
       renderOrganizations();
       return;
     } catch (err) {
-      console.error('Remote clear vote failed, falling back to localStorage:', err);
-      voteProviderReady = false;
+      if (isFirestoreOfflineError(err)) {
+        disableRemoteVotes(err);
+      } else {
+        console.error('Remote clear vote failed, falling back to localStorage:', err);
+        disableRemoteVotes(err);
+      }
     }
   }
 
