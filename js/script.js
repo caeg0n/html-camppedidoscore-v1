@@ -11,6 +11,28 @@ let globalVoteSummary = {};
 let remoteVotesDisabled = false;
 const externalLoadingTasks = new Map();
 const voteResyncTimersByOrg = new Map();
+const pendingVoteActions = new Map();
+
+function isOrgVotePending(orgId) {
+  return !!orgId && pendingVoteActions.has(orgId);
+}
+
+function getOrgVotePendingMessage(orgId) {
+  if (!orgId) return '';
+  return pendingVoteActions.get(orgId) || '';
+}
+
+function setOrgVotePending(orgId, active, message) {
+  if (!orgId) return;
+  const loadingKey = `votes:org:${orgId}`;
+  if (active) {
+    pendingVoteActions.set(orgId, message || 'Atualizando avaliacao...');
+    setExternalLoading(loadingKey, true, message || 'Atualizando avaliacao...');
+  } else {
+    pendingVoteActions.delete(orgId);
+    setExternalLoading(loadingKey, false);
+  }
+}
 
 function clearVoteResyncTimers(orgId) {
   const timers = voteResyncTimersByOrg.get(orgId) || [];
@@ -240,6 +262,7 @@ function disableRemoteVotes(err) {
   userVotesCache = getLocalVotes();
   clearExternalLoadingPrefix('votes:');
   clearAllVoteResyncTimers();
+  pendingVoteActions.clear();
   if (!remoteVotesDisabled) {
     remoteVotesDisabled = true;
     if (err) {
@@ -589,6 +612,15 @@ function renderStars(ratingValue) {
 
 function renderVoteWidget(orgId) {
   const userVote = getUserVote(orgId);
+  const pending = isOrgVotePending(orgId);
+  const pendingMessage = getOrgVotePendingMessage(orgId) || 'Atualizando...';
+  const pendingHtml = pending
+    ? `<span class="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+        <span class="material-symbols-outlined animate-spin text-[13px] leading-none">progress_activity</span>
+        ${pendingMessage}
+      </span>`
+    : '';
+
   if (userVote > 0) {
     let starsHtml = '';
     for (let i = 1; i <= 5; i++) {
@@ -598,23 +630,30 @@ function renderVoteWidget(orgId) {
       <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
         <span>Sua avaliação:</span>
         <div class="flex items-center">${starsHtml}</div>
-        <button type="button" class="ml-2 text-slate-400 hover:text-red-400 transition-colors text-[11px] underline" data-clear-vote="1" data-org-id="${orgId}">(limpar)</button>
+        ${pendingHtml}
+        <button type="button"
+          class="ml-2 text-slate-400 hover:text-red-400 transition-colors text-[11px] underline ${pending ? 'opacity-50 cursor-wait pointer-events-none' : ''}"
+          data-clear-vote="1"
+          data-org-id="${orgId}"
+          ${pending ? 'disabled aria-disabled="true"' : ''}>(limpar)</button>
       </div>`;
   }
 
   let starsHtml = '';
   for (let i = 1; i <= 5; i++) {
     starsHtml += `<button type="button"
-      class="material-symbols-outlined text-[22px] text-slate-300 dark:text-slate-600 cursor-pointer transition-colors hover:text-yellow-400 bg-transparent border-0 p-0 leading-none"
+      class="material-symbols-outlined text-[22px] text-slate-300 dark:text-slate-600 transition-colors bg-transparent border-0 p-0 leading-none ${pending ? 'opacity-50 cursor-wait pointer-events-none' : 'cursor-pointer hover:text-yellow-400'}"
       data-org-id="${orgId}" data-star="${i}"
       data-vote-star="1"
+      ${pending ? 'disabled aria-disabled="true"' : ''}
       id="vote-star-${orgId}-${i}">star</button>`;
   }
 
   return `
-    <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+    <div class="mt-2 flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500" ${pending ? 'aria-busy="true"' : ''}>
       <span>Avalie:</span>
       <div class="flex items-center" id="vote-widget-${orgId}">${starsHtml}</div>
+      ${pendingHtml}
     </div>`;
 }
 
@@ -753,7 +792,7 @@ function bindOrganizationInteractions() {
       event.preventDefault();
       const orgId = starEl.getAttribute('data-org-id');
       const stars = parseInt(starEl.getAttribute('data-star') || '0', 10);
-      if (orgId && stars >= 1 && stars <= 5) {
+      if (orgId && !isOrgVotePending(orgId) && stars >= 1 && stars <= 5) {
         submitVote(orgId, stars);
       }
       return;
@@ -763,7 +802,7 @@ function bindOrganizationInteractions() {
     if (clearEl) {
       event.preventDefault();
       const orgId = clearEl.getAttribute('data-org-id');
-      if (orgId) {
+      if (orgId && !isOrgVotePending(orgId)) {
         clearUserVote(orgId);
       }
       return;
@@ -786,8 +825,9 @@ function bindOrganizationInteractions() {
     const starEl = target.closest('[data-vote-star="1"]');
     if (!starEl) return;
     const orgId = starEl.getAttribute('data-org-id');
+    if (!orgId || isOrgVotePending(orgId)) return;
     const stars = parseInt(starEl.getAttribute('data-star') || '0', 10);
-    if (orgId && stars >= 1 && stars <= 5) {
+    if (stars >= 1 && stars <= 5) {
       highlightVoteStars(orgId, stars);
     }
   });
@@ -800,7 +840,7 @@ function bindOrganizationInteractions() {
     if (!starEl) return;
 
     const orgId = starEl.getAttribute('data-org-id');
-    if (!orgId) return;
+    if (!orgId || isOrgVotePending(orgId)) return;
 
     const related = event.relatedTarget;
     if (related && related.closest && related.closest(`#vote-widget-${orgId}`)) {
@@ -836,10 +876,11 @@ function resetVoteStars(orgId) {
 
 async function submitVote(orgId, stars) {
   const normalized = Math.max(1, Math.min(5, parseInt(stars, 10) || 0));
+  if (!orgId || isOrgVotePending(orgId)) return;
 
   if (voteProviderReady) {
-    const loadingKey = `votes:submit:${orgId}`;
-    setExternalLoading(loadingKey, true, 'Atualizando sua avaliacao...');
+    setOrgVotePending(orgId, true, 'Atualizando avaliacao...');
+    renderOrganizations();
     try {
       await window.CamppVotes.upsertVote(orgId, normalized);
       applyOptimisticVoteUpdate(orgId, normalized);
@@ -854,7 +895,8 @@ async function submitVote(orgId, stars) {
         disableRemoteVotes(err);
       }
     } finally {
-      setExternalLoading(loadingKey, false);
+      setOrgVotePending(orgId, false);
+      renderOrganizations();
     }
   }
 
@@ -864,9 +906,11 @@ async function submitVote(orgId, stars) {
 }
 
 async function clearUserVote(orgId) {
+  if (!orgId || isOrgVotePending(orgId)) return;
+
   if (voteProviderReady) {
-    const loadingKey = `votes:clear:${orgId}`;
-    setExternalLoading(loadingKey, true, 'Removendo sua avaliacao...');
+    setOrgVotePending(orgId, true, 'Removendo avaliacao...');
+    renderOrganizations();
     try {
       await window.CamppVotes.clearVote(orgId);
       applyOptimisticVoteUpdate(orgId, 0);
@@ -881,7 +925,8 @@ async function clearUserVote(orgId) {
         disableRemoteVotes(err);
       }
     } finally {
-      setExternalLoading(loadingKey, false);
+      setOrgVotePending(orgId, false);
+      renderOrganizations();
     }
   }
 
