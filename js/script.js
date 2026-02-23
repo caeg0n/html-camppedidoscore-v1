@@ -253,7 +253,7 @@ function ensureExternalLoadingBanner() {
 
   banner = document.createElement('div');
   banner.id = 'external-loading-state';
-  banner.className = 'pointer-events-none fixed right-4 campp-safe-fixed-bottom z-50 inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-700 shadow-sm shadow-slate-900/10 opacity-0 translate-y-2 transition-all duration-200 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-300';
+  banner.className = 'pointer-events-none fixed right-4 campp-safe-fixed-bottom z-50 inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 shadow-sm shadow-slate-900/10 opacity-0 translate-y-2 transition-all duration-200 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300';
   banner.setAttribute('role', 'status');
   banner.setAttribute('aria-live', 'polite');
   banner.innerHTML = `
@@ -917,7 +917,7 @@ function renderVoteWidget(orgId) {
   const pendingTitle = pending ? (getOrgVotePendingMessage(orgId) || 'Atualizando...') : '';
   const pendingHtml = `
     <span class="inline-flex h-4 w-4 items-center justify-center" title="${pendingTitle}">
-      <span class="material-symbols-outlined text-[13px] leading-none transition-opacity ${pending ? 'animate-spin opacity-100 text-sky-500' : 'opacity-0'}">progress_activity</span>
+      <span class="material-symbols-outlined text-[13px] leading-none transition-opacity ${pending ? 'animate-spin opacity-100 text-red-500' : 'opacity-0'}">progress_activity</span>
     </span>`;
 
   if (waitingUserVote && !pending) {
@@ -932,7 +932,7 @@ function renderVoteWidget(orgId) {
           <span class="material-symbols-outlined text-[22px] text-slate-300 dark:text-slate-600">star</span>
         </div>
         <span class="inline-flex h-4 w-4 items-center justify-center">
-          <span class="material-symbols-outlined animate-spin text-[13px] leading-none text-sky-500">progress_activity</span>
+          <span class="material-symbols-outlined animate-spin text-[13px] leading-none text-red-500">progress_activity</span>
         </span>
       </div>
     `;
@@ -1087,7 +1087,7 @@ function renderOrganizations() {
       ? `<button type="button" class="text-red-500 hover:text-slate-400 transition-colors" data-toggle-favorite="1" data-org-id="${org.id}"><span class="material-symbols-outlined filled">favorite</span></button>`
       : `<button type="button" class="text-slate-400 hover:text-red-500 transition-colors" data-toggle-favorite="1" data-org-id="${org.id}"><span class="material-symbols-outlined">favorite_border</span></button>`
     }
-            <a class="inline-flex w-full sm:w-auto justify-center items-center gap-2 bg-primary hover:bg-sky-500 text-white text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md shadow-primary/20 hover:shadow-primary/40" href="${org.url}" rel="noopener">
+            <a class="inline-flex w-full sm:w-auto justify-center items-center gap-2 bg-primary hover:bg-red-600 text-white text-sm font-semibold py-2 px-6 rounded-lg transition-all shadow-md shadow-primary/20 hover:shadow-primary/40" href="${org.url}" rel="noopener">
               Ver Cardápio
               <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
             </a>
