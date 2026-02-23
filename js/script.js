@@ -278,12 +278,13 @@ function getRatingStats(org) {
   const baseCount = parseReviewsCount(org.reviews);
   const summary = getOrgSummary(org.id);
 
-  const liveCount = voteProviderReady && summary ? (summary.count || 0) : 0;
-  const liveAvg = voteProviderReady && summary ? (summary.avg || 0) : 0;
+  const hasLiveSummary = !!(voteProviderReady && summary && typeof summary === 'object');
+  const liveCount = hasLiveSummary ? (summary.count || 0) : 0;
+  const liveAvg = hasLiveSummary ? (summary.avg || 0) : 0;
 
-  if (liveCount > 0) {
+  if (hasLiveSummary) {
     return {
-      avg: liveAvg,
+      avg: liveCount > 0 ? liveAvg : 0,
       count: liveCount,
       reviewsLabel: formatVotesCount(liveCount)
     };
