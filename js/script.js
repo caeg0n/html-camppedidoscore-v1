@@ -22,6 +22,11 @@ let safeAreaListenersBound = false;
 
 const MAX_NAV_SAFE_INSET_PX = 96;
 const MAX_TOP_SAFE_INSET_PX = 72;
+const SPLASH_MIN_VISIBLE_MS = 900;
+const SPLASH_FORCE_HIDE_MS = 9000;
+let splashShownAt = 0;
+let splashHideRequested = false;
+let splashForceTimer = null;
 
 function hasFirebaseVoteConfig() {
   const cfg = window.CAMPP_FIREBASE_CONFIG;
@@ -106,6 +111,35 @@ function setupSafeAreaInsets() {
     window.visualViewport.addEventListener('resize', scheduleSafeAreaRefresh, { passive: true });
     window.visualViewport.addEventListener('scroll', scheduleSafeAreaRefresh, { passive: true });
   }
+}
+
+function showAppSplash() {
+  const splash = document.getElementById('app-splash');
+  if (!splash) return;
+  splash.classList.remove('campp-splash-hide');
+  splashShownAt = Date.now();
+  splashHideRequested = false;
+  if (splashForceTimer) {
+    clearTimeout(splashForceTimer);
+  }
+  splashForceTimer = setTimeout(() => hideAppSplash(true), SPLASH_FORCE_HIDE_MS);
+}
+
+function hideAppSplash(force = false) {
+  const splash = document.getElementById('app-splash');
+  if (!splash || splashHideRequested) return;
+
+  const elapsed = Date.now() - splashShownAt;
+  const waitMs = force ? 0 : Math.max(0, SPLASH_MIN_VISIBLE_MS - elapsed);
+
+  splashHideRequested = true;
+  setTimeout(() => {
+    splash.classList.add('campp-splash-hide');
+    if (splashForceTimer) {
+      clearTimeout(splashForceTimer);
+      splashForceTimer = null;
+    }
+  }, waitMs);
 }
 
 function clearVoteLoadState() {
@@ -735,6 +769,7 @@ async function init() {
     votesInitResolved = true;
     setExternalLoading('data:load', false);
     setExternalLoading('votes:init', false);
+    hideAppSplash();
   }
 }
 
@@ -1265,6 +1300,7 @@ async function clearUserVote(orgId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  showAppSplash();
   setupSafeAreaInsets();
   bindOrganizationInteractions();
   init();

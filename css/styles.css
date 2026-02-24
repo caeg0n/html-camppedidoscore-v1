@@ -23,6 +23,186 @@ body {
     padding-bottom: calc(12px + var(--campp-safe-area-bottom));
 }
 
+.campp-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 18% 12%, #ffe5e3 0%, #fff 42%, #f7f7f8 100%);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 420ms ease, visibility 420ms ease;
+}
+
+.dark .campp-splash {
+    background: radial-gradient(circle at 18% 12%, #2f1212 0%, #1a1111 42%, #130e0e 100%);
+}
+
+.campp-splash.campp-splash-hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.campp-splash-bg::before,
+.campp-splash-bg::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(10px);
+    animation: camppSplashFloat 4.2s ease-in-out infinite;
+}
+
+.campp-splash-bg::before {
+    width: 220px;
+    height: 220px;
+    left: 10%;
+    top: 16%;
+    background: radial-gradient(circle, rgba(229, 57, 53, 0.2) 0%, rgba(229, 57, 53, 0.02) 70%);
+}
+
+.campp-splash-bg::after {
+    width: 200px;
+    height: 200px;
+    right: 11%;
+    bottom: 15%;
+    background: radial-gradient(circle, rgba(194, 24, 91, 0.16) 0%, rgba(194, 24, 91, 0.02) 72%);
+    animation-delay: 500ms;
+}
+
+.campp-splash-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+}
+
+.campp-splash-logo-wrap {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    display: grid;
+    place-items: center;
+}
+
+.campp-splash-logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
+    box-shadow: 0 12px 28px rgba(198, 40, 40, 0.35);
+    animation: camppSplashPulse 1.4s ease-in-out infinite;
+}
+
+.campp-splash-ring {
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    border-radius: 999px;
+    border: 2px solid rgba(198, 40, 40, 0.28);
+    animation: camppSplashRing 1.8s ease-out infinite;
+}
+
+.campp-splash-title {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: #1f2937;
+}
+
+.dark .campp-splash-title {
+    color: #f8fafc;
+}
+
+.campp-splash-title span {
+    color: #e53935;
+}
+
+.campp-splash-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.dark .campp-splash-subtitle {
+    color: #9ca3af;
+}
+
+.campp-splash-bar {
+    width: 180px;
+    height: 4px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(148, 163, 184, 0.25);
+    margin-top: 4px;
+}
+
+.campp-splash-bar span {
+    display: block;
+    width: 48%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ef5350 0%, #c62828 100%);
+    animation: camppSplashBar 1.3s ease-in-out infinite;
+}
+
+@keyframes camppSplashBar {
+    0% {
+        transform: translateX(-110%);
+    }
+    100% {
+        transform: translateX(240%);
+    }
+}
+
+@keyframes camppSplashPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes camppSplashRing {
+    0% {
+        transform: scale(0.84);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1.06);
+        opacity: 0;
+    }
+}
+
+@keyframes camppSplashFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .campp-splash-logo,
+    .campp-splash-ring,
+    .campp-splash-bg::before,
+    .campp-splash-bg::after,
+    .campp-splash-bar span {
+        animation: none !important;
+    }
+}
+
 .campp-safe-header {
     padding-top: var(--campp-safe-area-top);
 }
