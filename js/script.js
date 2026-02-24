@@ -19,6 +19,7 @@ let orgVoteObserver = null;
 let renderOrganizationsQueued = false;
 let votesInitResolved = false;
 let safeAreaListenersBound = false;
+const PHONE_OTP_DIGITS = 6;
 
 const MAX_NAV_SAFE_INSET_PX = 96;
 const MAX_TOP_SAFE_INSET_PX = 72;
@@ -31,6 +32,98 @@ let splashForceTimer = null;
 function hasFirebaseVoteConfig() {
   const cfg = window.CAMPP_FIREBASE_CONFIG;
   return !!(cfg && cfg.apiKey && cfg.projectId && cfg.appId);
+}
+
+function isCorePhoneVoteRequired() {
+  const required = !!window.CAMPP_PHONE_AUTH_VOTE_REQUIRED;
+  const coreAppKey = String(window.CAMPP_PHONE_AUTH_CORE_APP_KEY || 'html-camppedidoscore-v1').trim();
+  const currentAppKey = String(window.CAMPP_APP_KEY || '').trim();
+  return required && !!coreAppKey && currentAppKey === coreAppKey;
+}
+
+function toDigitsOnly(value) {
+  return String(value || '').replace(/[^\d]/g, '');
+}
+
+function normalizePhoneE164(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('+')) {
+    const digits = toDigitsOnly(raw);
+    return digits ? `+${digits}` : '';
+  }
+  const digits = toDigitsOnly(raw);
+  return digits ? `+${digits}` : '';
+}
+
+function normalizeOtpCode(rawValue) {
+  const digits = toDigitsOnly(rawValue).slice(0, PHONE_OTP_DIGITS);
+  return digits;
+}
+
+function getPhoneAuthErrorMessage(err) {
+  const code = String(err?.code || '').toLowerCase();
+  if (code.includes('invalid-phone-number')) return 'Numero de telefone invalido.';
+  if (code.includes('invalid-verification-code')) return 'Codigo SMS invalido.';
+  if (code.includes('code-expired')) return 'Codigo expirado. Solicite outro codigo.';
+  if (code.includes('too-many-requests')) return 'Muitas tentativas. Aguarde e tente novamente.';
+  if (code.includes('captcha-check-failed')) return 'Falha de verificacao reCAPTCHA. Tente novamente.';
+  if (code.includes('phone-auth-required')) return 'Login por telefone obrigatorio para votar.';
+  return 'Falha na verificacao por telefone. Tente novamente.';
+}
+
+async function ensurePhoneIdentityForVote(orgId) {
+  if (!isCorePhoneVoteRequired()) return true;
+  if (!voteProviderReady || !window.CamppVotes) return false;
+  if (window.CamppVotes.hasPhoneUserForVote()) return true;
+
+  const autoHint = window.CamppVotes.supportsNativePhoneAutoFill()
+    ? ' O app tentara preencher o codigo automaticamente via SMS.'
+    : '';
+  const phoneInput = window.prompt(`Para votar, confirme seu telefone com DDI (ex: +5511999999999).${autoHint}`, '');
+  const phoneNumber = normalizePhoneE164(phoneInput);
+  if (!phoneNumber) return false;
+
+  setOrgVotePending(orgId, true, 'Enviando codigo SMS...');
+  renderOrganizations();
+  try {
+    await window.CamppVotes.requestPhoneChallenge(phoneNumber, { recaptchaContainerId: 'campp-phone-recaptcha' });
+  } catch (err) {
+    console.error('Phone challenge failed:', err);
+    alert(getPhoneAuthErrorMessage(err));
+    return false;
+  } finally {
+    setOrgVotePending(orgId, false);
+    renderOrganizations();
+  }
+
+  if (window.CamppVotes.hasPhoneUserForVote()) {
+    await refreshOrgVoteCache(orgId);
+    return true;
+  }
+
+  const codeInput = window.prompt('Digite o codigo de verificacao SMS (6 digitos):', '');
+  const otpCode = normalizeOtpCode(codeInput);
+  if (!otpCode || otpCode.length < PHONE_OTP_DIGITS) {
+    window.CamppVotes.clearPhoneChallenge();
+    return false;
+  }
+
+  setOrgVotePending(orgId, true, 'Verificando codigo SMS...');
+  renderOrganizations();
+  try {
+    const confirmed = await window.CamppVotes.confirmPhoneChallenge(otpCode);
+    if (!confirmed) return false;
+    await refreshOrgVoteCache(orgId);
+    return true;
+  } catch (err) {
+    console.error('Phone code confirmation failed:', err);
+    alert(getPhoneAuthErrorMessage(err));
+    return false;
+  } finally {
+    setOrgVotePending(orgId, false);
+    renderOrganizations();
+  }
 }
 
 function scheduleOrganizationsRender() {
@@ -949,6 +1042,7 @@ function renderVoteWidget(orgId) {
   const userVote = getUserVote(orgId);
   const pending = isOrgVotePending(orgId);
   const waitingUserVote = isOrgUserVoteLoading(orgId);
+  const voteLabel = isCorePhoneVoteRequired() ? 'Avalie (telefone):' : 'Avalie:';
   const pendingTitle = pending ? (getOrgVotePendingMessage(orgId) || 'Atualizando...') : '';
   const pendingHtml = `
     <span class="inline-flex h-4 w-4 items-center justify-center" title="${pendingTitle}">
@@ -958,7 +1052,7 @@ function renderVoteWidget(orgId) {
   if (waitingUserVote && !pending) {
     return `
       <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-slate-400 dark:text-slate-500" aria-busy="true">
-        <span>Avalie:</span>
+        <span>${voteLabel}</span>
         <div class="flex items-center opacity-60">
           <span class="material-symbols-outlined text-[22px] text-slate-300 dark:text-slate-600">star</span>
           <span class="material-symbols-outlined text-[22px] text-slate-300 dark:text-slate-600">star</span>
@@ -1012,7 +1106,7 @@ function renderVoteWidget(orgId) {
 
   return `
     <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-slate-400 dark:text-slate-500" ${pending ? 'aria-busy="true"' : ''}>
-      <span>Avalie:</span>
+      <span>${voteLabel}</span>
       <div class="flex items-center" id="vote-widget-${orgId}">${starsHtml}</div>
       ${pendingHtml}
     </div>`;
@@ -1237,6 +1331,9 @@ async function submitVote(orgId, stars) {
   if (!orgId || isOrgVotePending(orgId) || !isOrgVoteInteractionReady(orgId)) return;
 
   if (voteProviderReady) {
+    const phoneReady = await ensurePhoneIdentityForVote(orgId);
+    if (!phoneReady) return;
+
     setOrgVotePending(orgId, true, 'Atualizando avaliacao...');
     renderOrganizations();
     try {
@@ -1248,7 +1345,7 @@ async function submitVote(orgId, stars) {
       if (isFirestoreOfflineError(err)) {
         disableRemoteVotes(err);
       } else {
-        console.error('Remote vote failed, falling back to localStorage:', err);
+        console.error('Remote vote failed:', err);
         disableRemoteVotes(err);
       }
     } finally {
@@ -1270,6 +1367,9 @@ async function clearUserVote(orgId) {
   if (!orgId || isOrgVotePending(orgId) || !isOrgVoteInteractionReady(orgId)) return;
 
   if (voteProviderReady) {
+    const phoneReady = await ensurePhoneIdentityForVote(orgId);
+    if (!phoneReady) return;
+
     setOrgVotePending(orgId, true, 'Removendo avaliacao...');
     renderOrganizations();
     try {
@@ -1281,7 +1381,7 @@ async function clearUserVote(orgId) {
       if (isFirestoreOfflineError(err)) {
         disableRemoteVotes(err);
       } else {
-        console.error('Remote clear vote failed, falling back to localStorage:', err);
+        console.error('Remote clear vote failed:', err);
         disableRemoteVotes(err);
       }
     } finally {

@@ -9,6 +9,9 @@
     "failed-precondition"
   ];
 
+  const PHONE_PROVIDER = "phone";
+  const ANONYMOUS_PROVIDER = "anonymous";
+
   function toInt(value) {
     const num = parseInt(value, 10);
     if (Number.isNaN(num)) return 0;
@@ -44,21 +47,35 @@
     );
   }
 
+  function createPhoneAuthRequiredError() {
+    const err = new Error("Phone authentication is required before voting");
+    err.code = "phone-auth-required";
+    return err;
+  }
+
   const CamppVotes = {
     ready: false,
     appKey: "",
     uid: "",
+    authProvider: "",
     app: null,
     db: null,
     auth: null,
+    phoneConfirmationResult: null,
+    phoneVerificationId: "",
+    recaptchaVerifier: null,
 
     async init(config, appKey) {
       this.ready = false;
       this.appKey = "";
       this.uid = "";
+      this.authProvider = "";
       this.app = null;
       this.db = null;
       this.auth = null;
+      this.phoneConfirmationResult = null;
+      this.phoneVerificationId = "";
+      this.recaptchaVerifier = null;
 
       if (!window.firebase || !appKey || !hasRequiredConfig(config)) {
         return false;
@@ -71,12 +88,16 @@
         this.auth = window.firebase.auth(this.app);
         this.db = window.firebase.firestore(this.app);
 
+        this.auth.onAuthStateChanged((user) => {
+          this.syncAuthState(user);
+        });
+
         try {
           await this.ensureAnonymousUser();
         } catch (authErr) {
           // Keep summary reads available even when anonymous auth is not enabled.
           console.warn("CamppVotes anonymous auth unavailable; summary read-only mode enabled.", authErr);
-          this.uid = "";
+          this.syncAuthState(null);
         }
 
         this.ready = true;
@@ -115,14 +136,66 @@
       }
     },
 
+    inferProvider(user) {
+      if (!user) return "";
+      if (user.isAnonymous) return ANONYMOUS_PROVIDER;
+
+      const providers = Array.isArray(user.providerData) ? user.providerData : [];
+      const phoneProvider = providers.find(function (item) {
+        return item && item.providerId === PHONE_PROVIDER;
+      });
+      if (phoneProvider) return PHONE_PROVIDER;
+
+      if (providers.length > 0 && providers[0] && providers[0].providerId) {
+        return String(providers[0].providerId);
+      }
+      return "";
+    },
+
+    syncAuthState(user) {
+      const authUser = user || (this.auth && this.auth.currentUser) || null;
+      if (!authUser || !authUser.uid) {
+        this.uid = "";
+        this.authProvider = "";
+        return;
+      }
+      this.uid = authUser.uid;
+      this.authProvider = this.inferProvider(authUser);
+    },
+
+    getCurrentProvider() {
+      return this.authProvider || "";
+    },
+
+    isPhoneUser() {
+      return this.getCurrentProvider() === PHONE_PROVIDER;
+    },
+
+    isPhoneVoteRequired() {
+      const required = !!window.CAMPP_PHONE_AUTH_VOTE_REQUIRED;
+      const coreAppKey = String(window.CAMPP_PHONE_AUTH_CORE_APP_KEY || "html-camppedidoscore-v1").trim();
+      return required && !!coreAppKey && this.appKey === coreAppKey;
+    },
+
+    hasPhoneUserForVote() {
+      if (!this.isPhoneVoteRequired()) return true;
+      return !!this.uid && this.isPhoneUser();
+    },
+
+    supportsNativePhoneAutoFill() {
+      const cap = window.Capacitor;
+      const plugin = cap && cap.Plugins ? cap.Plugins.CamppPhoneAuth : null;
+      return !!plugin;
+    },
+
     async ensureAnonymousUser() {
       if (!this.auth) {
         throw new Error("Firebase auth is not initialized");
       }
 
       if (this.auth.currentUser && this.auth.currentUser.uid) {
-        this.uid = this.auth.currentUser.uid;
-        return this.uid;
+        this.syncAuthState(this.auth.currentUser);
+        return this.auth.currentUser.uid;
       }
 
       const credential = await this.auth.signInAnonymously();
@@ -130,7 +203,7 @@
       if (!user || !user.uid) {
         throw new Error("Anonymous auth failed to provide uid");
       }
-      this.uid = user.uid;
+      this.syncAuthState(user);
       return user.uid;
     },
 
@@ -154,6 +227,152 @@
         .doc("aggregate");
     },
 
+    getOrCreateRecaptchaVerifier(containerId) {
+      if (!this.auth) {
+        throw new Error("Firebase auth is not initialized");
+      }
+      if (this.recaptchaVerifier) {
+        return this.recaptchaVerifier;
+      }
+      const authNs = window.firebase && window.firebase.auth;
+      if (!authNs || typeof authNs.RecaptchaVerifier !== "function") {
+        throw new Error("RecaptchaVerifier is not available");
+      }
+
+      const targetId = containerId || "campp-phone-recaptcha";
+      let el = document.getElementById(targetId);
+      if (!el) {
+        el = document.createElement("div");
+        el.id = targetId;
+        el.style.position = "fixed";
+        el.style.left = "-9999px";
+        el.style.top = "-9999px";
+        document.body.appendChild(el);
+      }
+
+      this.recaptchaVerifier = new authNs.RecaptchaVerifier(targetId, {
+        size: "invisible"
+      }, this.auth);
+      return this.recaptchaVerifier;
+    },
+
+    async tryNativePhoneChallenge(phoneNumber) {
+      const cap = window.Capacitor;
+      const plugin = cap && cap.Plugins ? cap.Plugins.CamppPhoneAuth : null;
+      if (!plugin) return null;
+
+      try {
+        let result = null;
+        if (typeof plugin.requestPhoneChallenge === "function") {
+          result = await plugin.requestPhoneChallenge({ phoneNumber: phoneNumber });
+        } else if (typeof plugin.verifyPhoneNumber === "function") {
+          result = await plugin.verifyPhoneNumber({ phoneNumber: phoneNumber });
+        }
+
+        if (!result || typeof result !== "object") return null;
+
+        const verificationId = String(result.verificationId || "").trim();
+        const smsCode = String(result.smsCode || result.code || "").trim();
+        if (!verificationId) return null;
+
+        this.phoneVerificationId = verificationId;
+
+        if (smsCode) {
+          await this.confirmPhoneChallenge(smsCode);
+          return { autoVerified: true, source: "native" };
+        }
+
+        return { codeSent: true, source: "native" };
+      } catch (err) {
+        console.warn("CamppVotes native phone auth hook failed; using web fallback.", err);
+        return null;
+      }
+    },
+
+    async requestPhoneChallenge(phoneNumber, options) {
+      const opts = options || {};
+      if (!this.auth) {
+        throw new Error("Firebase auth is not initialized");
+      }
+
+      if (this.hasPhoneUserForVote()) {
+        return { alreadyVerified: true };
+      }
+
+      const normalizedPhone = String(phoneNumber || "").trim();
+      if (!normalizedPhone) {
+        const err = new Error("Phone number is required");
+        err.code = "phone-number-required";
+        throw err;
+      }
+
+      const nativeResult = await this.tryNativePhoneChallenge(normalizedPhone);
+      if (nativeResult && (nativeResult.autoVerified || nativeResult.codeSent)) {
+        return nativeResult;
+      }
+
+      const verifier = this.getOrCreateRecaptchaVerifier(opts.recaptchaContainerId);
+      this.phoneConfirmationResult = await this.auth.signInWithPhoneNumber(normalizedPhone, verifier);
+      this.phoneVerificationId = "";
+      return { codeSent: true, source: "web" };
+    },
+
+    async confirmPhoneChallenge(code) {
+      if (!this.auth) {
+        throw new Error("Firebase auth is not initialized");
+      }
+
+      if (this.hasPhoneUserForVote()) {
+        return true;
+      }
+
+      const normalizedCode = String(code || "").trim();
+      if (!normalizedCode) {
+        const err = new Error("OTP code is required");
+        err.code = "otp-required";
+        throw err;
+      }
+
+      if (this.phoneVerificationId) {
+        const authNs = window.firebase && window.firebase.auth;
+        if (!authNs || !authNs.PhoneAuthProvider || typeof authNs.PhoneAuthProvider.credential !== "function") {
+          throw new Error("PhoneAuthProvider is not available");
+        }
+        const credential = authNs.PhoneAuthProvider.credential(this.phoneVerificationId, normalizedCode);
+        await this.auth.signInWithCredential(credential);
+        this.phoneVerificationId = "";
+        this.phoneConfirmationResult = null;
+        this.syncAuthState(this.auth.currentUser);
+        return this.hasPhoneUserForVote();
+      }
+
+      if (!this.phoneConfirmationResult || typeof this.phoneConfirmationResult.confirm !== "function") {
+        const err = new Error("No pending phone verification challenge");
+        err.code = "phone-challenge-missing";
+        throw err;
+      }
+
+      await this.phoneConfirmationResult.confirm(normalizedCode);
+      this.phoneConfirmationResult = null;
+      this.phoneVerificationId = "";
+      this.syncAuthState(this.auth.currentUser);
+      return this.hasPhoneUserForVote();
+    },
+
+    clearPhoneChallenge() {
+      this.phoneConfirmationResult = null;
+      this.phoneVerificationId = "";
+    },
+
+    assertCanVote() {
+      if (!this.ready || !this.uid) {
+        throw new Error("CamppVotes is not initialized");
+      }
+      if (this.isPhoneVoteRequired() && !this.hasPhoneUserForVote()) {
+        throw createPhoneAuthRequiredError();
+      }
+    },
+
     async getUserVote(storeId) {
       if (!this.ready || !this.uid) return null;
       try {
@@ -170,9 +389,7 @@
     },
 
     async upsertVote(storeId, stars) {
-      if (!this.ready || !this.uid) {
-        throw new Error("CamppVotes is not initialized");
-      }
+      this.assertCanVote();
 
       const normalized = Math.max(1, Math.min(5, toInt(stars)));
       await this.votesDoc(storeId).set(
@@ -188,9 +405,7 @@
     },
 
     async clearVote(storeId) {
-      if (!this.ready || !this.uid) {
-        throw new Error("CamppVotes is not initialized");
-      }
+      this.assertCanVote();
       await this.votesDoc(storeId).delete();
       return true;
     },

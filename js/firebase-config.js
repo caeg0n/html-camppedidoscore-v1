@@ -10,4 +10,6 @@
 
 window.CAMPP_APP_CHECK_SITE_KEY = "6LdWXHQsAAAAAPwpjtaIpfJh_5egu_l-imRIGIbi";
 window.CAMPP_APP_KEY = "html-camppedidoscore-v1";
+window.CAMPP_PHONE_AUTH_VOTE_REQUIRED = true;
+window.CAMPP_PHONE_AUTH_CORE_APP_KEY = "html-camppedidoscore-v1";
 
