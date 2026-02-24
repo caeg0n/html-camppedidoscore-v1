@@ -1299,9 +1299,65 @@ async function clearUserVote(orgId) {
   renderOrganizations();
 }
 
+function installCapacitorRootBackToCore() {
+  const cap = window.Capacitor;
+  const isNative = !!(cap && cap.Plugins);
+  if (!isNative) return;
+
+  const coreSlug = 'html-camppedidoscore-v1';
+  const coreUrl = 'https://caeg0n.github.io/html-camppedidoscore-v1/';
+  const pathParts = (window.location.pathname || '/').split('/').filter(Boolean);
+  const projectSlug = pathParts[0] || '';
+  const pagePart = pathParts[1] || '';
+  const isProjectRoot = pathParts.length === 1 || (pathParts.length === 2 && pagePart.toLowerCase() === 'index.html');
+
+  if (!projectSlug || !projectSlug.startsWith('html-') || projectSlug === coreSlug || !isProjectRoot) return;
+
+  let redirected = false;
+  const goCore = () => {
+    if (redirected) return;
+    redirected = true;
+    window.location.href = coreUrl;
+  };
+
+  try {
+    history.replaceState({ ...(history.state || {}), __camppRootBackBase: true }, document.title, window.location.href);
+    history.pushState({ ...(history.state || {}), __camppRootBackSentinel: true }, document.title, window.location.href);
+  } catch (_err) {
+    // no-op
+  }
+
+  window.addEventListener('popstate', () => {
+    const parts = (window.location.pathname || '/').split('/').filter(Boolean);
+    const atRoot = parts.length === 1 || (parts.length === 2 && (parts[1] || '').toLowerCase() === 'index.html');
+    if (atRoot) goCore();
+  });
+
+  document.addEventListener(
+    'backbutton',
+    (event) => {
+      event.preventDefault();
+      goCore();
+    },
+    { passive: false }
+  );
+
+  const appPlugin = cap?.Plugins?.App;
+  if (appPlugin && typeof appPlugin.addListener === 'function') {
+    appPlugin.addListener('backButton', ({ canGoBack }) => {
+      if (canGoBack) {
+        window.history.back();
+        return;
+      }
+      goCore();
+    });
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   showAppSplash();
   setupSafeAreaInsets();
+  installCapacitorRootBackToCore();
   bindOrganizationInteractions();
   init();
 });
