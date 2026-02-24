@@ -1303,6 +1303,8 @@ function installCapacitorRootBackToCore() {
   const cap = window.Capacitor;
   const isNative = !!(cap && cap.Plugins);
   if (!isNative) return;
+  const platform = typeof cap?.getPlatform === 'function' ? cap.getPlatform() : '';
+  if (String(platform).toLowerCase() === 'android') return;
 
   const coreSlug = 'html-camppedidoscore-v1';
   const coreUrl = 'https://caeg0n.github.io/html-camppedidoscore-v1/';
