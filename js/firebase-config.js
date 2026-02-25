@@ -1,5 +1,5 @@
 ﻿window.CAMPP_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyASw-e0cEa1LBI5bMBN_3OSv8hw7f65iM4",
+  apiKey: "AIzaSyBy3JPLF2l0eBlSHETxUUN-R6seDnKrAVw",
   authDomain: "camp-pedidos.firebaseapp.com",
   projectId: "camp-pedidos",
   storageBucket: "camp-pedidos.firebasestorage.app",
