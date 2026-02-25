@@ -159,7 +159,15 @@
 
       try {
         const appCheck = window.firebase.appCheck(appInstance);
-        if (appCheck && typeof appCheck.activate === "function") {
+        if (!appCheck) return;
+        // Use ReCaptchaEnterpriseProvider when available (reCAPTCHA Enterprise Score key).
+        // The compat SDK's activate(siteKey) defaults to ReCaptchaV3Provider which returns
+        // HTTP 400 for Enterprise keys, throttling App Check and breaking Phone Auth.
+        const ac = window.firebase.appCheck;
+        if (ac.ReCaptchaEnterpriseProvider && typeof appCheck.activate === "function") {
+          appCheck.activate(new ac.ReCaptchaEnterpriseProvider(siteKey), true);
+        } else if (typeof appCheck.activate === "function") {
+          // Fallback for older SDK versions without ReCaptchaEnterpriseProvider.
           appCheck.activate(siteKey, true);
         }
       } catch (err) {
