@@ -428,7 +428,7 @@ function getPhoneAuthErrorMessage(err) {
     const loadedKey = String(window.CAMPP_FIREBASE_CONFIG?.apiKey || '').trim();
     const keyTail = loadedKey ? loadedKey.slice(-6) : '(vazio)';
     const origin = String(window.location?.origin || '(sem-origin)');
-    return `API key Firebase invalida para este app. Chave carregada termina com ${keyTail}. Origem atual: ${origin}.`;
+    return `API key Firebase invalida para este app. Chave carregada termina com ${keyTail}. Origem atual: ${origin}. Se a chave estiver correta, habilite Billing do Google Cloud para Phone Auth SMS.`;
   }
   if (code.includes('invalid-phone-number')) return 'Numero de telefone invalido.';
   if (code.includes('invalid-verification-code')) return 'Codigo SMS invalido.';
@@ -445,6 +445,9 @@ function getPhoneAuthErrorMessage(err) {
   }
   if (details.includes('quota-exceeded')) {
     return 'Limite de SMS excedido no Firebase. Tente novamente mais tarde.';
+  }
+  if (details.includes('billing_not_enabled') || details.includes('billing not enabled')) {
+    return 'Phone Auth SMS bloqueado: faturamento do Google Cloud nao habilitado no projeto. Ative Billing e tente novamente.';
   }
   if (details.includes('network-request-failed')) {
     return 'Falha de rede ao validar telefone. Verifique a conexao e tente novamente.';
