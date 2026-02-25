@@ -425,7 +425,10 @@ function getPhoneAuthErrorMessage(err) {
   const message = String(err?.message || '').toLowerCase();
   const details = `${code} ${message}`;
   if (details.includes('invalid-api-key')) {
-    return 'API key Firebase invalida para este app. Atualize js/firebase-config.js com o sdkconfig WEB correto e confira restricoes da chave no Google Cloud.';
+    const loadedKey = String(window.CAMPP_FIREBASE_CONFIG?.apiKey || '').trim();
+    const keyTail = loadedKey ? loadedKey.slice(-6) : '(vazio)';
+    const origin = String(window.location?.origin || '(sem-origin)');
+    return `API key Firebase invalida para este app. Chave carregada termina com ${keyTail}. Origem atual: ${origin}.`;
   }
   if (code.includes('invalid-phone-number')) return 'Numero de telefone invalido.';
   if (code.includes('invalid-verification-code')) return 'Codigo SMS invalido.';
@@ -449,6 +452,28 @@ function getPhoneAuthErrorMessage(err) {
   if (code.includes('phone-auth-required')) return 'Login por telefone obrigatorio para votar.';
   if (code) return `Falha na verificacao por telefone (${code}).`;
   return 'Falha na verificacao por telefone. Veja o log do console para detalhes.';
+}
+
+function isInvalidApiKeyError(err) {
+  const code = String(err?.code || '').toLowerCase();
+  const message = String(err?.message || '').toLowerCase();
+  const details = `${code} ${message}`;
+  return details.includes('invalid-api-key');
+}
+
+function tryForceRefreshOnInvalidApiKey(err) {
+  if (!isInvalidApiKeyError(err)) return false;
+  try {
+    const marker = 'campp_refresh_after_invalid_api_key';
+    if (sessionStorage.getItem(marker) === '1') return false;
+    sessionStorage.setItem(marker, '1');
+    const url = new URL(window.location.href);
+    url.searchParams.set('fbrefresh', String(Date.now()));
+    window.location.replace(url.toString());
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 async function ensurePhoneIdentityForVote(orgId) {
@@ -479,6 +504,7 @@ async function ensurePhoneIdentityForVote(orgId) {
       await window.CamppVotes.requestPhoneChallenge(phoneNumber, { recaptchaContainerId: 'campp-phone-recaptcha' });
     } catch (err) {
       console.error('Phone challenge failed:', err);
+      if (tryForceRefreshOnInvalidApiKey(err)) return false;
       alert(getPhoneAuthErrorMessage(err));
       return false;
     } finally {
@@ -519,6 +545,7 @@ async function ensurePhoneIdentityForVote(orgId) {
           await window.CamppVotes.requestPhoneChallenge(phoneNumber, { recaptchaContainerId: 'campp-phone-recaptcha' });
         } catch (err) {
           console.error('Phone challenge resend failed:', err);
+          if (tryForceRefreshOnInvalidApiKey(err)) return false;
           alert(getPhoneAuthErrorMessage(err));
           return false;
         } finally {
@@ -541,6 +568,7 @@ async function ensurePhoneIdentityForVote(orgId) {
         return true;
       } catch (err) {
         console.error('Phone code confirmation failed:', err);
+        if (tryForceRefreshOnInvalidApiKey(err)) return false;
         alert(getPhoneAuthErrorMessage(err));
         return false;
       } finally {
