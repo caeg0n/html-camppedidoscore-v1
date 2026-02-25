@@ -189,10 +189,15 @@ if not exist "VERSION.txt" (
   > "VERSION.txt" echo !BUILD_VER!
 )
 set /p BUILD_VER=<VERSION.txt
-powershell -NoProfile -Command ^
-  "$v='v!BUILD_VER!';" ^
-  "$files=@('index.html');" ^
-  "foreach($f in $files){ if(Test-Path $f){ $c=Get-Content $f -Raw; $c=$c -replace '(<span id=\"build-version\">)v?\\d+(</span>)', ('$1'+$v+'$2'); Set-Content $f $c -Encoding utf8 } }"
+if not exist "scripts\update_build_version.ps1" (
+  echo [ERRO] Script ausente: scripts\update_build_version.ps1
+  exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\update_build_version.ps1" -IndexPath "index.html" -VersionValue "v!BUILD_VER!"
+if errorlevel 1 (
+  echo [ERRO] Falha ao atualizar o selo de versao em index.html.
+  exit /b 1
+)
 echo Versao atual: v!BUILD_VER!
 
 echo.
