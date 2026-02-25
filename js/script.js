@@ -424,6 +424,9 @@ function getPhoneAuthErrorMessage(err) {
   const code = String(err?.code || '').toLowerCase();
   const message = String(err?.message || '').toLowerCase();
   const details = `${code} ${message}`;
+  if (details.includes('invalid-api-key')) {
+    return 'API key Firebase invalida para este app. Atualize js/firebase-config.js com o sdkconfig WEB correto e confira restricoes da chave no Google Cloud.';
+  }
   if (code.includes('invalid-phone-number')) return 'Numero de telefone invalido.';
   if (code.includes('invalid-verification-code')) return 'Codigo SMS invalido.';
   if (code.includes('code-expired')) return 'Codigo expirado. Solicite outro codigo.';
