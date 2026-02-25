@@ -63,6 +63,21 @@ function normalizeOtpCode(rawValue) {
   return digits;
 }
 
+function maskPhoneNumber(rawPhone) {
+  const normalized = normalizePhoneE164(rawPhone);
+  if (!normalized) return '';
+  const digits = toDigitsOnly(normalized);
+  if (digits.length < 4) return normalized;
+  return `+${digits.slice(0, Math.max(0, digits.length - 4)).replace(/\d/g, '*')}${digits.slice(-4)}`;
+}
+
+function formatCountdownLabel(totalSeconds) {
+  const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
+  const mins = Math.floor(safeSeconds / 60);
+  const secs = safeSeconds % 60;
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
 function ensurePhoneAuthModal() {
   if (phoneAuthModalEl) return phoneAuthModalEl;
 
@@ -70,47 +85,65 @@ function ensurePhoneAuthModal() {
   modal.id = 'campp-phone-auth-modal';
   modal.className = 'fixed inset-0 z-[120] hidden items-center justify-center px-4';
   modal.innerHTML = `
-    <div class="absolute inset-0 bg-slate-950/75 backdrop-blur-sm" data-phone-auth-backdrop="1"></div>
-    <div class="relative z-[121] w-full max-w-md overflow-hidden rounded-2xl border border-slate-700/60 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-100 shadow-2xl shadow-black/50">
-      <div class="border-b border-slate-800/90 px-6 pt-6 pb-4">
-        <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600/15 text-red-400 ring-1 ring-red-500/30">
-            <span class="material-symbols-outlined text-[20px]" data-phone-auth-icon="1">smartphone</span>
+    <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" data-phone-auth-backdrop="1"></div>
+    <div class="relative z-[121] w-full max-w-[480px] overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-2xl shadow-black/25">
+      <div class="px-6 pt-7 pb-3 text-center">
+        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+          <span class="material-symbols-outlined text-[30px]" data-phone-auth-icon="1">smartphone</span>
+        </div>
+        <div>
+          <h3 class="text-2xl font-bold leading-tight tracking-tight" data-phone-auth-title="1">Confirmar telefone</h3>
+          <p class="mt-1 text-xs font-medium text-slate-500" data-phone-auth-step-label="1">Etapa 1 de 2</p>
+        </div>
+        <p class="mx-auto mt-3 max-w-[340px] text-sm text-slate-600" data-phone-auth-message="1"></p>
+      </div>
+      <div class="px-6 pb-3">
+        <div class="relative" data-phone-auth-input-wrap="1">
+          <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+            <span class="material-symbols-outlined text-[20px]">smartphone</span>
           </div>
-          <div>
-            <h3 class="text-lg font-semibold leading-tight" data-phone-auth-title="1">Confirmar telefone</h3>
-            <p class="mt-0.5 text-xs text-slate-400" data-phone-auth-step-label="1">Etapa 1 de 2</p>
+          <input
+            type="text"
+            data-phone-auth-input="1"
+            class="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+            autocomplete="off"
+          />
+        </div>
+        <p class="mt-3 flex items-center gap-1.5 text-xs text-slate-500" data-phone-auth-phone-hint="1">
+          <span class="material-symbols-outlined text-[14px]">sms</span>
+          Vamos enviar um SMS com código de verificação.
+        </p>
+
+        <div class="mt-2 hidden" data-phone-auth-otp-wrap="1">
+          <fieldset class="flex justify-center gap-2 sm:gap-3">
+            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="0" class="h-14 w-10 sm:w-12 rounded-lg border border-slate-300 bg-slate-50 text-center text-xl font-bold text-slate-900 outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20" />
+            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="1" class="h-14 w-10 sm:w-12 rounded-lg border border-slate-300 bg-slate-50 text-center text-xl font-bold text-slate-900 outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20" />
+            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="2" class="h-14 w-10 sm:w-12 rounded-lg border border-slate-300 bg-slate-50 text-center text-xl font-bold text-slate-900 outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20" />
+            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="3" class="h-14 w-10 sm:w-12 rounded-lg border border-slate-300 bg-slate-50 text-center text-xl font-bold text-slate-900 outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20" />
+            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="4" class="h-14 w-10 sm:w-12 rounded-lg border border-slate-300 bg-slate-50 text-center text-xl font-bold text-slate-900 outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20" />
+            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="5" class="h-14 w-10 sm:w-12 rounded-lg border border-slate-300 bg-slate-50 text-center text-xl font-bold text-slate-900 outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20" />
+          </fieldset>
+          <div class="mt-4 flex flex-col items-center gap-2">
+            <p class="text-sm text-slate-500" data-phone-auth-resend-text="1">
+              Reenviar codigo em
+              <span class="font-bold text-red-500 tabular-nums" data-phone-auth-resend-countdown="1">0:30</span>
+            </p>
+            <button type="button" data-phone-auth-resend="1" class="hidden text-sm font-semibold text-red-600 hover:text-red-500">
+              Reenviar código
+            </button>
+            <button type="button" data-phone-auth-change-phone="1" class="text-sm font-semibold text-slate-600 hover:text-slate-800">
+              Alterar número de telefone
+            </button>
           </div>
         </div>
-        <p class="mt-4 text-sm text-slate-300" data-phone-auth-message="1"></p>
+        <p class="mt-3 min-h-[18px] text-center text-xs text-red-600" data-phone-auth-error="1"></p>
       </div>
-      <div class="px-6 py-5">
-        <input
-          type="text"
-          data-phone-auth-input="1"
-          class="w-full rounded-xl border border-slate-700/90 bg-slate-800/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 shadow-inner shadow-black/20 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-          autocomplete="off"
-        />
-        <div class="mt-4 hidden" data-phone-auth-otp-wrap="1">
-          <div class="flex items-center justify-between gap-2 sm:gap-3">
-            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="0" class="h-12 w-10 sm:w-12 rounded-xl border border-slate-700 bg-slate-800/60 text-center text-lg font-semibold tracking-wide text-slate-100 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" />
-            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="1" class="h-12 w-10 sm:w-12 rounded-xl border border-slate-700 bg-slate-800/60 text-center text-lg font-semibold tracking-wide text-slate-100 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" />
-            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="2" class="h-12 w-10 sm:w-12 rounded-xl border border-slate-700 bg-slate-800/60 text-center text-lg font-semibold tracking-wide text-slate-100 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" />
-            <span class="text-slate-600">-</span>
-            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="3" class="h-12 w-10 sm:w-12 rounded-xl border border-slate-700 bg-slate-800/60 text-center text-lg font-semibold tracking-wide text-slate-100 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" />
-            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="4" class="h-12 w-10 sm:w-12 rounded-xl border border-slate-700 bg-slate-800/60 text-center text-lg font-semibold tracking-wide text-slate-100 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" />
-            <input type="text" inputmode="numeric" maxlength="1" data-phone-auth-otp-digit="5" class="h-12 w-10 sm:w-12 rounded-xl border border-slate-700 bg-slate-800/60 text-center text-lg font-semibold tracking-wide text-slate-100 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20" />
-          </div>
-          <p class="mt-3 text-xs text-slate-400">Digite os 6 dígitos do SMS.</p>
-        </div>
-        <p class="mt-3 min-h-[18px] text-xs text-red-300" data-phone-auth-error="1"></p>
-      </div>
-      <div class="flex items-center justify-between border-t border-slate-800/90 px-5 py-4">
-        <button type="button" data-phone-auth-cancel="1" class="rounded-lg px-4 py-2 text-sm text-slate-300 hover:bg-slate-800">Cancelar</button>
-        <button type="button" data-phone-auth-ok="1" class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-red-700/30 transition-colors hover:bg-red-500">
-          <span data-phone-auth-ok-label="1">Continuar</span>
-          <span class="material-symbols-outlined text-[17px]">arrow_forward</span>
+      <div class="px-6 pb-6 pt-2">
+        <button type="button" data-phone-auth-ok="1" class="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-base font-bold text-white shadow-lg shadow-red-500/25 transition-colors hover:bg-red-500">
+          <span data-phone-auth-ok-label="1">Enviar código</span>
+          <span class="material-symbols-outlined text-[18px]">sms</span>
         </button>
+        <button type="button" data-phone-auth-cancel="1" class="mx-auto mt-2 block px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700">Cancelar</button>
       </div>
     </div>
   `;
@@ -139,40 +172,53 @@ function openPhoneAuthModal(options) {
   const iconEl = modal.querySelector('[data-phone-auth-icon="1"]');
   const messageEl = modal.querySelector('[data-phone-auth-message="1"]');
   const inputEl = modal.querySelector('[data-phone-auth-input="1"]');
+  const inputWrapEl = modal.querySelector('[data-phone-auth-input-wrap="1"]');
+  const phoneHintEl = modal.querySelector('[data-phone-auth-phone-hint="1"]');
   const otpWrapEl = modal.querySelector('[data-phone-auth-otp-wrap="1"]');
   const otpDigits = Array.from(modal.querySelectorAll('[data-phone-auth-otp-digit]'));
+  const resendTextEl = modal.querySelector('[data-phone-auth-resend-text="1"]');
+  const resendCountdownEl = modal.querySelector('[data-phone-auth-resend-countdown="1"]');
+  const resendEl = modal.querySelector('[data-phone-auth-resend="1"]');
+  const changePhoneEl = modal.querySelector('[data-phone-auth-change-phone="1"]');
   const errorEl = modal.querySelector('[data-phone-auth-error="1"]');
   const cancelEl = modal.querySelector('[data-phone-auth-cancel="1"]');
   const okEl = modal.querySelector('[data-phone-auth-ok="1"]');
   const okLabelEl = modal.querySelector('[data-phone-auth-ok-label="1"]');
   const backdropEl = modal.querySelector('[data-phone-auth-backdrop="1"]');
 
-  if (!titleEl || !messageEl || !inputEl || !otpWrapEl || otpDigits.length !== PHONE_OTP_DIGITS || !errorEl || !cancelEl || !okEl || !okLabelEl || !stepLabelEl || !iconEl || !backdropEl) {
+  if (!titleEl || !stepLabelEl || !iconEl || !messageEl || !inputEl || !inputWrapEl || !phoneHintEl || !otpWrapEl || otpDigits.length !== PHONE_OTP_DIGITS || !resendTextEl || !resendCountdownEl || !resendEl || !changePhoneEl || !errorEl || !cancelEl || !okEl || !okLabelEl || !backdropEl) {
     return Promise.resolve(null);
   }
 
   const isOtpMode = opts.mode === 'otp';
   titleEl.textContent = opts.title || 'Confirmar telefone';
   stepLabelEl.textContent = isOtpMode ? 'Etapa 2 de 2' : 'Etapa 1 de 2';
-  iconEl.textContent = isOtpMode ? 'mark_email_read' : 'smartphone';
+  iconEl.textContent = isOtpMode ? 'phonelink_lock' : 'smartphone';
   messageEl.textContent = opts.message || '';
   inputEl.placeholder = opts.placeholder || '';
   inputEl.value = opts.defaultValue || '';
   inputEl.type = opts.inputType || 'text';
   inputEl.inputMode = opts.inputMode || 'text';
-  inputEl.classList.toggle('hidden', isOtpMode);
+  inputWrapEl.classList.toggle('hidden', isOtpMode);
+  phoneHintEl.classList.toggle('hidden', isOtpMode);
   otpWrapEl.classList.toggle('hidden', !isOtpMode);
   if (!isOtpMode && opts.maxLength && Number.isFinite(opts.maxLength)) {
     inputEl.maxLength = opts.maxLength;
   } else {
     inputEl.removeAttribute('maxLength');
   }
-  okLabelEl.textContent = opts.confirmLabel || 'Continuar';
+  okLabelEl.textContent = opts.confirmLabel || (isOtpMode ? 'Verificar e continuar' : 'Enviar código');
   cancelEl.textContent = opts.cancelLabel || 'Cancelar';
   errorEl.textContent = '';
   otpDigits.forEach((el) => {
     el.value = '';
   });
+  const resendAfterSeconds = Math.max(0, Number(opts.resendAfterSeconds) || 0);
+  resendTextEl.classList.toggle('hidden', !isOtpMode || resendAfterSeconds <= 0);
+  resendEl.classList.toggle('hidden', !isOtpMode || resendAfterSeconds > 0);
+  resendCountdownEl.textContent = formatCountdownLabel(resendAfterSeconds);
+  changePhoneEl.classList.toggle('hidden', !isOtpMode || !opts.allowChangePhone);
+  changePhoneEl.textContent = opts.changePhoneLabel || 'Alterar número de telefone';
 
   const normalize = typeof opts.normalize === 'function'
     ? opts.normalize
@@ -198,6 +244,9 @@ function openPhoneAuthModal(options) {
         el.removeEventListener('input', onOtpInput);
         el.removeEventListener('paste', onOtpPaste);
       });
+      resendEl.removeEventListener('click', onResend);
+      changePhoneEl.removeEventListener('click', onChangePhone);
+      if (countdownTimer) window.clearInterval(countdownTimer);
     };
 
     const done = (value) => {
@@ -224,6 +273,26 @@ function openPhoneAuthModal(options) {
       }
       done(normalized);
     };
+
+    const onResend = () => done('__resend__');
+    const onChangePhone = () => done('__change_phone__');
+
+    let countdownRemaining = resendAfterSeconds;
+    let countdownTimer = null;
+    if (isOtpMode && resendAfterSeconds > 0) {
+      countdownTimer = window.setInterval(() => {
+        countdownRemaining -= 1;
+        resendCountdownEl.textContent = formatCountdownLabel(countdownRemaining);
+        if (countdownRemaining <= 0) {
+          if (countdownTimer) {
+            window.clearInterval(countdownTimer);
+            countdownTimer = null;
+          }
+          resendTextEl.classList.add('hidden');
+          resendEl.classList.remove('hidden');
+        }
+      }, 1000);
+    }
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -292,6 +361,8 @@ function openPhoneAuthModal(options) {
         el.addEventListener('input', onOtpInput);
         el.addEventListener('paste', onOtpPaste);
       });
+      resendEl.addEventListener('click', onResend);
+      changePhoneEl.addEventListener('click', onChangePhone);
     } else {
       inputEl.addEventListener('keydown', onKeyDown);
     }
@@ -329,65 +400,95 @@ async function ensurePhoneIdentityForVote(orgId) {
   const autoHint = window.CamppVotes.supportsNativePhoneAutoFill()
     ? ' O app tentara preencher o codigo automaticamente via SMS.'
     : '';
-  const phoneNumber = await openPhoneAuthModal({
-    mode: 'phone',
-    title: 'Confirmar telefone',
-    message: `Para votar, confirme seu telefone com DDI (ex: +5511999999999).${autoHint}`,
-    placeholder: '+5511999999999',
-    inputType: 'tel',
-    inputMode: 'tel',
-    normalize: normalizePhoneE164,
-    validate: (value) => !!value,
-    invalidMessage: 'Informe um telefone válido com DDI.'
-  });
-  if (!phoneNumber) return false;
+  while (true) {
+    const phoneNumber = await openPhoneAuthModal({
+      mode: 'phone',
+      title: 'Entrar com telefone',
+      message: `Para votar, informe seu número com DDI (ex: +5511999999999).${autoHint}`,
+      placeholder: '+5511999999999',
+      inputType: 'tel',
+      inputMode: 'tel',
+      normalize: normalizePhoneE164,
+      validate: (value) => !!value,
+      invalidMessage: 'Informe um telefone válido com DDI.'
+    });
+    if (!phoneNumber) return false;
 
-  setOrgVotePending(orgId, true, 'Enviando codigo SMS...');
-  renderOrganizations();
-  try {
-    await window.CamppVotes.requestPhoneChallenge(phoneNumber, { recaptchaContainerId: 'campp-phone-recaptcha' });
-  } catch (err) {
-    console.error('Phone challenge failed:', err);
-    alert(getPhoneAuthErrorMessage(err));
-    return false;
-  } finally {
-    setOrgVotePending(orgId, false);
+    setOrgVotePending(orgId, true, 'Enviando codigo SMS...');
     renderOrganizations();
-  }
+    try {
+      await window.CamppVotes.requestPhoneChallenge(phoneNumber, { recaptchaContainerId: 'campp-phone-recaptcha' });
+    } catch (err) {
+      console.error('Phone challenge failed:', err);
+      alert(getPhoneAuthErrorMessage(err));
+      return false;
+    } finally {
+      setOrgVotePending(orgId, false);
+      renderOrganizations();
+    }
 
-  if (window.CamppVotes.hasPhoneUserForVote()) {
-    await refreshOrgVoteCache(orgId);
-    return true;
-  }
+    if (window.CamppVotes.hasPhoneUserForVote()) {
+      await refreshOrgVoteCache(orgId);
+      return true;
+    }
 
-  const otpCode = await openPhoneAuthModal({
-    mode: 'otp',
-    title: 'Código SMS',
-    message: `Digite o código de verificação com ${PHONE_OTP_DIGITS} dígitos.`,
-    confirmLabel: 'Verificar',
-    normalize: normalizeOtpCode,
-    validate: (value) => !!value && value.length === PHONE_OTP_DIGITS,
-    invalidMessage: `Digite ${PHONE_OTP_DIGITS} dígitos.`
-  });
-  if (!otpCode || otpCode.length < PHONE_OTP_DIGITS) {
-    window.CamppVotes.clearPhoneChallenge();
-    return false;
-  }
+    while (true) {
+      const otpResult = await openPhoneAuthModal({
+        mode: 'otp',
+        title: 'Verifique sua identidade',
+        message: `Digite o código enviado para ${maskPhoneNumber(phoneNumber)}.`,
+        confirmLabel: 'Verificar e continuar',
+        normalize: normalizeOtpCode,
+        validate: (value) => !!value && value.length === PHONE_OTP_DIGITS,
+        invalidMessage: `Digite ${PHONE_OTP_DIGITS} dígitos.`,
+        allowChangePhone: true,
+        resendAfterSeconds: 30
+      });
 
-  setOrgVotePending(orgId, true, 'Verificando codigo SMS...');
-  renderOrganizations();
-  try {
-    const confirmed = await window.CamppVotes.confirmPhoneChallenge(otpCode);
-    if (!confirmed) return false;
-    await refreshOrgVoteCache(orgId);
-    return true;
-  } catch (err) {
-    console.error('Phone code confirmation failed:', err);
-    alert(getPhoneAuthErrorMessage(err));
-    return false;
-  } finally {
-    setOrgVotePending(orgId, false);
-    renderOrganizations();
+      if (!otpResult) {
+        window.CamppVotes.clearPhoneChallenge();
+        return false;
+      }
+      if (otpResult === '__change_phone__') {
+        window.CamppVotes.clearPhoneChallenge();
+        break;
+      }
+      if (otpResult === '__resend__') {
+        setOrgVotePending(orgId, true, 'Reenviando codigo SMS...');
+        renderOrganizations();
+        try {
+          await window.CamppVotes.requestPhoneChallenge(phoneNumber, { recaptchaContainerId: 'campp-phone-recaptcha' });
+        } catch (err) {
+          console.error('Phone challenge resend failed:', err);
+          alert(getPhoneAuthErrorMessage(err));
+          return false;
+        } finally {
+          setOrgVotePending(orgId, false);
+          renderOrganizations();
+        }
+        if (window.CamppVotes.hasPhoneUserForVote()) {
+          await refreshOrgVoteCache(orgId);
+          return true;
+        }
+        continue;
+      }
+
+      setOrgVotePending(orgId, true, 'Verificando codigo SMS...');
+      renderOrganizations();
+      try {
+        const confirmed = await window.CamppVotes.confirmPhoneChallenge(otpResult);
+        if (!confirmed) return false;
+        await refreshOrgVoteCache(orgId);
+        return true;
+      } catch (err) {
+        console.error('Phone code confirmation failed:', err);
+        alert(getPhoneAuthErrorMessage(err));
+        return false;
+      } finally {
+        setOrgVotePending(orgId, false);
+        renderOrganizations();
+      }
+    }
   }
 }
 

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OTP Verification - ShopDirectory</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13a4ec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101c22",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-4 md:px-10">
+<div class="flex items-center gap-4 text-slate-900 dark:text-white">
+<div class="size-8 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">storefront</span>
+</div>
+<h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-tight">ShopDirectory</h2>
+</div>
+<div class="hidden md:flex flex-1 justify-end gap-8">
+<div class="flex items-center gap-9">
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Home</a>
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Browse Stores</a>
+<a class="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary text-sm font-medium leading-normal transition-colors" href="#">Help</a>
+</div>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center justify-center px-4 py-10 md:py-16">
+<div class="w-full max-w-[480px] bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 md:p-10 flex flex-col items-center">
+<div class="mb-6 rounded-full bg-primary/10 p-4 text-primary relative">
+<span class="material-symbols-outlined text-4xl">phonelink_lock</span>
+</div>
+<h1 class="text-slate-900 dark:text-white tracking-tight text-3xl font-bold leading-tight text-center mb-3">
+                    Verify Your Identity
+                </h1>
+<p class="text-slate-500 dark:text-slate-400 text-base font-normal leading-normal text-center mb-8 max-w-[320px]">
+                    Enter the code sent to your phone ending in <span class="font-semibold text-slate-900 dark:text-slate-200">**89</span>.
+                </p>
+<div class="w-full flex justify-center mb-8">
+<fieldset class="flex gap-2 sm:gap-4">
+<input aria-label="Digit 1" class="flex h-14 w-10 sm:w-12 rounded-lg bg-slate-50 dark:bg-slate-800 text-center text-xl font-bold border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-300" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="text"/>
+<input aria-label="Digit 2" class="flex h-14 w-10 sm:w-12 rounded-lg bg-slate-50 dark:bg-slate-800 text-center text-xl font-bold border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-300" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="text"/>
+<input aria-label="Digit 3" class="flex h-14 w-10 sm:w-12 rounded-lg bg-slate-50 dark:bg-slate-800 text-center text-xl font-bold border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-300" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="text"/>
+<input aria-label="Digit 4" class="flex h-14 w-10 sm:w-12 rounded-lg bg-slate-50 dark:bg-slate-800 text-center text-xl font-bold border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-300" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="text"/>
+<input aria-label="Digit 5" class="flex h-14 w-10 sm:w-12 rounded-lg bg-slate-50 dark:bg-slate-800 text-center text-xl font-bold border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-300" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="text"/>
+<input aria-label="Digit 6" class="flex h-14 w-10 sm:w-12 rounded-lg bg-slate-50 dark:bg-slate-800 text-center text-xl font-bold border border-slate-200 dark:border-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-300" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="text"/>
+</fieldset>
+</div>
+<button class="w-full flex items-center justify-center overflow-hidden rounded-xl h-12 px-5 bg-primary hover:bg-sky-600 dark:hover:bg-sky-500 text-white text-base font-bold leading-normal tracking-[0.015em] transition-colors shadow-lg shadow-primary/20 mb-6">
+<span class="truncate">Verify &amp; Proceed</span>
+</button>
+<div class="flex flex-col items-center gap-4 w-full">
+<div class="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center gap-2">
+<span>Resend code in</span>
+<span class="text-primary font-bold tabular-nums">0:59</span>
+</div>
+<a class="text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary transition-colors flex items-center gap-1 group" href="#">
+<span class="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                        Change phone number
+                    </a>
+</div>
+</div>
+<p class="mt-8 text-xs text-slate-400 dark:text-slate-600">
+                © 2023 ShopDirectory Inc. Secure Login System.
+            </p>
+</main>
+</div>
+
+</body></html>
