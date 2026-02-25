@@ -333,12 +333,37 @@
         if (!authOnlyApp) {
           authOnlyApp = window.firebase.initializeApp(config, authOnlyName);
         }
-        return window.firebase.auth(authOnlyApp);
+        const authInstance = window.firebase.auth(authOnlyApp);
+
+        // Firebase Auth compat SDK v10.x requires _agentRecaptchaConfig to be non-null
+        // before a RecaptchaVerifier can be instantiated. When the project uses reCAPTCHA
+        // Enterprise for App Check, this field stays null on secondary app instances
+        // (it would normally be populated by an async getRecaptchaConfig network call that
+        // only runs on the default/main app). Patch it here with a sentinel that signals
+        // "no reCAPTCHA Enterprise phone enforcement" so the compat SDK falls back to the
+        // standard invisible reCAPTCHA v2 flow, which is compatible with GitHub Pages.
+        try {
+          const delegate = authInstance._delegate;
+          if (delegate && (delegate._agentRecaptchaConfig === null || delegate._agentRecaptchaConfig === undefined)) {
+            delegate._agentRecaptchaConfig = {
+              siteKey: "",
+              emailPasswordEnabled: false,
+              phoneEnforcementState: "OFF",
+              useSmsBotScore: false,
+              useSmsTollfraudProtection: false
+            };
+          }
+        } catch (patchErr) {
+          console.warn("CamppVotes: _agentRecaptchaConfig patch failed:", patchErr);
+        }
+
+        return authInstance;
       } catch (e) {
         console.warn("CamppVotes resolveAuthOnlyApp fallback:", e);
         return this.auth;
       }
     },
+
 
     async tryNativePhoneChallenge(phoneNumber) {
       const cap = window.Capacitor;
