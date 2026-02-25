@@ -193,7 +193,7 @@ if not exist "scripts\update_build_version.ps1" (
   echo [ERRO] Script ausente: scripts\update_build_version.ps1
   exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\update_build_version.ps1" -IndexPath "index.html" -VersionValue "v!BUILD_VER!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\update_build_version.ps1" -IndexPath "index.html" -VersionValue "v!BUILD_VER!" -CacheToken "build!BUILD_VER!"
 if errorlevel 1 (
   echo [ERRO] Falha ao atualizar o selo de versao em index.html.
   exit /b 1
