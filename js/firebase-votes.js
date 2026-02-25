@@ -153,16 +153,22 @@
     },
 
     setupAppCheck(appInstance) {
-      // NOTE: App Check activation is intentionally skipped on the CamppVotes app instance.
-      // When App Check (ReCaptchaEnterpriseProvider) is activated on the same Firebase app
-      // instance that handles signInWithPhoneNumber, the Firebase compat SDK conflicts:
-      // the App Check reCAPTCHA Enterprise token exchange interferes with the RecaptchaVerifier
-      // (reCAPTCHA v2/invisible) used for Phone Auth, producing auth/invalid-api-key errors.
-      // App Check enforcement for Firestore continues to work via the server-side rules;
-      // the client-side token is sent by the default app instance (if initialized elsewhere).
-      // To re-enable App Check on this instance, Phone Auth must first be migrated to a
-      // separate Firebase app instance without App Check.
-      return;
+      const siteKey = String(window.CAMPP_APP_CHECK_SITE_KEY || "").trim();
+      if (!siteKey) return;
+      if (!window.firebase.appCheck) return;
+
+      try {
+        const appCheck = window.firebase.appCheck(appInstance);
+        if (!appCheck) return;
+        const ac = window.firebase.appCheck;
+        if (ac.ReCaptchaEnterpriseProvider && typeof appCheck.activate === "function") {
+          appCheck.activate(new ac.ReCaptchaEnterpriseProvider(siteKey), true);
+        } else if (typeof appCheck.activate === "function") {
+          appCheck.activate(siteKey, true);
+        }
+      } catch (err) {
+        console.warn("CamppVotes App Check setup warning:", err);
+      }
     },
 
     inferProvider(user) {
@@ -302,10 +308,38 @@
         el.style.boxShadow = "";
       }
 
+      // Use a separate auth-only Firebase app instance (without App Check) for RecaptchaVerifier.
+      // App Check on the main instance conflicts with the reCAPTCHA v2/invisible widget
+      // used by Phone Auth, causing auth/invalid-api-key. A separate app instance shares
+      // auth state (same project) but is not burdened by App Check token exchange.
+      const authForVerifier = this.resolveAuthOnlyApp();
       this.recaptchaVerifier = new authNs.RecaptchaVerifier(targetId, {
         size: opts.size === "normal" ? "normal" : "invisible"
-      }, this.auth);
+      }, authForVerifier);
       return this.recaptchaVerifier;
+    },
+
+    resolveAuthOnlyApp() {
+      // Returns a Firebase Auth instance from a minimal app instance that has NO App Check,
+      // to allow RecaptchaVerifier to work without App Check token interference.
+      const config = this.app && this.app.options ? this.app.options : null;
+      if (!config) return this.auth;
+      const authOnlyName = "campp-auth-only";
+      try {
+        let authOnlyApp = null;
+        if (window.firebase.apps) {
+          authOnlyApp = window.firebase.apps.find(function (a) {
+            return a && a.name === authOnlyName;
+          }) || null;
+        }
+        if (!authOnlyApp) {
+          authOnlyApp = window.firebase.initializeApp(config, authOnlyName);
+        }
+        return window.firebase.auth(authOnlyApp);
+      } catch (e) {
+        console.warn("CamppVotes resolveAuthOnlyApp fallback:", e);
+        return this.auth;
+      }
     },
 
     async tryNativePhoneChallenge(phoneNumber) {
