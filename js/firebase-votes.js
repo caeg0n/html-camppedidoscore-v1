@@ -153,26 +153,16 @@
     },
 
     setupAppCheck(appInstance) {
-      const siteKey = String(window.CAMPP_APP_CHECK_SITE_KEY || "").trim();
-      if (!siteKey) return;
-      if (!window.firebase.appCheck) return;
-
-      try {
-        const appCheck = window.firebase.appCheck(appInstance);
-        if (!appCheck) return;
-        // Use ReCaptchaEnterpriseProvider when available (reCAPTCHA Enterprise Score key).
-        // The compat SDK's activate(siteKey) defaults to ReCaptchaV3Provider which returns
-        // HTTP 400 for Enterprise keys, throttling App Check and breaking Phone Auth.
-        const ac = window.firebase.appCheck;
-        if (ac.ReCaptchaEnterpriseProvider && typeof appCheck.activate === "function") {
-          appCheck.activate(new ac.ReCaptchaEnterpriseProvider(siteKey), true);
-        } else if (typeof appCheck.activate === "function") {
-          // Fallback for older SDK versions without ReCaptchaEnterpriseProvider.
-          appCheck.activate(siteKey, true);
-        }
-      } catch (err) {
-        console.warn("CamppVotes App Check setup warning:", err);
-      }
+      // NOTE: App Check activation is intentionally skipped on the CamppVotes app instance.
+      // When App Check (ReCaptchaEnterpriseProvider) is activated on the same Firebase app
+      // instance that handles signInWithPhoneNumber, the Firebase compat SDK conflicts:
+      // the App Check reCAPTCHA Enterprise token exchange interferes with the RecaptchaVerifier
+      // (reCAPTCHA v2/invisible) used for Phone Auth, producing auth/invalid-api-key errors.
+      // App Check enforcement for Firestore continues to work via the server-side rules;
+      // the client-side token is sent by the default app instance (if initialized elsewhere).
+      // To re-enable App Check on this instance, Phone Auth must first be migrated to a
+      // separate Firebase app instance without App Check.
+      return;
     },
 
     inferProvider(user) {
@@ -456,7 +446,7 @@
           if (typeof this.recaptchaVerifier.clear === "function") {
             this.recaptchaVerifier.clear();
           }
-        } catch (_) {}
+        } catch (_) { }
       }
       this.recaptchaVerifier = null;
       hideRecaptchaContainerById("campp-phone-recaptcha");
