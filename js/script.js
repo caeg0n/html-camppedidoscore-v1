@@ -505,14 +505,8 @@ function isFirestoreOfflineError(err) {
   return (
     code.includes('unavailable') ||
     code.includes('network-request-failed') ||
-    code.includes('permission-denied') ||
-    code.includes('unauthenticated') ||
-    code.includes('failed-precondition') ||
     message.includes('client is offline') ||
-    message.includes('network') ||
-    message.includes('app check') ||
-    message.includes('appcheck') ||
-    message.includes('permission')
+    message.includes('network')
   );
 }
 
@@ -1346,7 +1340,6 @@ async function submitVote(orgId, stars) {
         disableRemoteVotes(err);
       } else {
         console.error('Remote vote failed:', err);
-        disableRemoteVotes(err);
       }
     } finally {
       setOrgVotePending(orgId, false);
@@ -1382,7 +1375,6 @@ async function clearUserVote(orgId) {
         disableRemoteVotes(err);
       } else {
         console.error('Remote clear vote failed:', err);
-        disableRemoteVotes(err);
       }
     } finally {
       setOrgVotePending(orgId, false);
