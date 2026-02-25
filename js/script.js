@@ -58,6 +58,32 @@ function normalizePhoneE164(rawValue) {
   return digits ? `+${digits}` : '';
 }
 
+function formatBrazilPhoneMask(rawValue) {
+  let digits = toDigitsOnly(rawValue);
+  if (digits.startsWith('55') && digits.length > 11) {
+    digits = digits.slice(2);
+  }
+  digits = digits.slice(0, 11);
+  const ddd = digits.slice(0, 2);
+  const partA = digits.length > 10 ? digits.slice(2, 7) : digits.slice(2, 6);
+  const partB = digits.length > 10 ? digits.slice(7, 11) : digits.slice(6, 10);
+  if (!ddd) return '';
+  if (!partA) return `(${ddd}`;
+  if (!partB) return `(${ddd})${partA}`;
+  return `(${ddd})${partA}-${partB}`;
+}
+
+function normalizeBrazilPhoneE164(rawValue) {
+  let digits = toDigitsOnly(rawValue);
+  if (!digits) return '';
+  if (digits.startsWith('55') && digits.length > 11) {
+    digits = digits.slice(2);
+  }
+  digits = digits.slice(0, 11);
+  if (digits.length < 10) return '';
+  return `+55${digits}`;
+}
+
 function normalizeOtpCode(rawValue) {
   const digits = toDigitsOnly(rawValue).slice(0, PHONE_OTP_DIGITS);
   return digits;
@@ -99,14 +125,8 @@ function ensurePhoneAuthModal() {
       </div>
       <div class="px-6 pb-3">
         <div class="flex gap-2" data-phone-auth-input-wrap="1">
-          <div class="relative min-w-[112px]">
-            <select data-phone-auth-ddi="1" class="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20">
-              <option value="+55">🇧🇷 +55</option>
-              <option value="+1">🇺🇸 +1</option>
-              <option value="+44">🇬🇧 +44</option>
-              <option value="+34">🇪🇸 +34</option>
-              <option value="+49">🇩🇪 +49</option>
-            </select>
+          <div class="flex h-12 min-w-[112px] items-center justify-center rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-slate-900" data-phone-auth-ddi-locked="1">
+            🇧🇷 +55
           </div>
           <div class="relative flex-1">
             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
@@ -183,7 +203,7 @@ function openPhoneAuthModal(options) {
   const iconEl = modal.querySelector('[data-phone-auth-icon="1"]');
   const messageEl = modal.querySelector('[data-phone-auth-message="1"]');
   const inputEl = modal.querySelector('[data-phone-auth-input="1"]');
-  const ddiEl = modal.querySelector('[data-phone-auth-ddi="1"]');
+  const ddiLockedEl = modal.querySelector('[data-phone-auth-ddi-locked="1"]');
   const inputWrapEl = modal.querySelector('[data-phone-auth-input-wrap="1"]');
   const phoneHintEl = modal.querySelector('[data-phone-auth-phone-hint="1"]');
   const otpWrapEl = modal.querySelector('[data-phone-auth-otp-wrap="1"]');
@@ -198,7 +218,7 @@ function openPhoneAuthModal(options) {
   const okLabelEl = modal.querySelector('[data-phone-auth-ok-label="1"]');
   const backdropEl = modal.querySelector('[data-phone-auth-backdrop="1"]');
 
-  if (!titleEl || !stepLabelEl || !iconEl || !messageEl || !inputEl || !ddiEl || !inputWrapEl || !phoneHintEl || !otpWrapEl || otpDigits.length !== PHONE_OTP_DIGITS || !resendTextEl || !resendCountdownEl || !resendEl || !changePhoneEl || !errorEl || !cancelEl || !okEl || !okLabelEl || !backdropEl) {
+  if (!titleEl || !stepLabelEl || !iconEl || !messageEl || !inputEl || !ddiLockedEl || !inputWrapEl || !phoneHintEl || !otpWrapEl || otpDigits.length !== PHONE_OTP_DIGITS || !resendTextEl || !resendCountdownEl || !resendEl || !changePhoneEl || !errorEl || !cancelEl || !okEl || !okLabelEl || !backdropEl) {
     return Promise.resolve(null);
   }
 
@@ -211,7 +231,6 @@ function openPhoneAuthModal(options) {
   inputEl.value = opts.defaultValue || '';
   inputEl.type = opts.inputType || 'text';
   inputEl.inputMode = opts.inputMode || 'text';
-  ddiEl.value = opts.defaultDdi || '+55';
   inputWrapEl.classList.toggle('hidden', isOtpMode);
   phoneHintEl.classList.toggle('hidden', isOtpMode);
   otpWrapEl.classList.toggle('hidden', !isOtpMode);
@@ -252,6 +271,7 @@ function openPhoneAuthModal(options) {
       cancelEl.removeEventListener('click', onCancel);
       backdropEl.removeEventListener('click', onCancel);
       inputEl.removeEventListener('keydown', onKeyDown);
+      inputEl.removeEventListener('input', onPhoneInputMask);
       otpDigits.forEach((el) => {
         el.removeEventListener('keydown', onOtpKeyDown);
         el.removeEventListener('input', onOtpInput);
@@ -272,13 +292,7 @@ function openPhoneAuthModal(options) {
     const onOk = () => {
       const rawValue = isOtpMode
         ? otpDigits.map((el) => toDigitsOnly(el.value).slice(-1)).join('')
-        : (() => {
-          const rawInput = String(inputEl.value || '').trim();
-          if (!rawInput) return '';
-          if (rawInput.startsWith('+')) return rawInput;
-          const ddi = String(ddiEl.value || '+55').trim();
-          return `${ddi}${toDigitsOnly(rawInput)}`;
-        })();
+        : inputEl.value;
       const normalized = normalize(rawValue);
       if (!validate(normalized)) {
         errorEl.textContent = opts.invalidMessage || 'Preencha um valor válido.';
@@ -321,6 +335,10 @@ function openPhoneAuthModal(options) {
         event.preventDefault();
         onOk();
       }
+    };
+
+    const onPhoneInputMask = () => {
+      inputEl.value = formatBrazilPhoneMask(inputEl.value);
     };
 
     const onOtpKeyDown = (event) => {
@@ -384,6 +402,8 @@ function openPhoneAuthModal(options) {
       changePhoneEl.addEventListener('click', onChangePhone);
     } else {
       inputEl.addEventListener('keydown', onKeyDown);
+      inputEl.addEventListener('input', onPhoneInputMask);
+      inputEl.value = formatBrazilPhoneMask(inputEl.value);
     }
 
     modal.classList.remove('hidden');
@@ -423,13 +443,13 @@ async function ensurePhoneIdentityForVote(orgId) {
     const phoneNumber = await openPhoneAuthModal({
       mode: 'phone',
       title: 'Entrar com telefone',
-      message: `Para votar, informe seu número com DDI (ex: +5511999999999).${autoHint}`,
-      placeholder: '+5511999999999',
+      message: `Para votar, informe seu telefone do Brasil.${autoHint}`,
+      placeholder: '(66)98110-2799',
       inputType: 'tel',
       inputMode: 'tel',
-      normalize: normalizePhoneE164,
-      validate: (value) => !!value,
-      invalidMessage: 'Informe um telefone válido com DDI.'
+      normalize: normalizeBrazilPhoneE164,
+      validate: (value) => !!value && value.startsWith('+55') && toDigitsOnly(value).length === 13,
+      invalidMessage: 'Informe um telefone válido no formato (66)98110-2799.'
     });
     if (!phoneNumber) return false;
 
