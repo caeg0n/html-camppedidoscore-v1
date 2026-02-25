@@ -1,10 +1,10 @@
 ﻿window.CAMPP_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBy3JPLF2l0eBlSHETxUUN-R6seDnKrAVw",
+  apiKey: "AIzaSyDGXTuOE2blfbjof9GCzB7GI9icmA42HhM",
   authDomain: "camp-pedidos.firebaseapp.com",
   projectId: "camp-pedidos",
   storageBucket: "camp-pedidos.firebasestorage.app",
   messagingSenderId: "47375572573",
-  appId: "1:47375572573:web:b67240b9d736d8ac5477b4",
+  appId: "1:47375572573:web:8b5ddb9a6f0e44405477b4",
   measurementId: ""
 };
 
