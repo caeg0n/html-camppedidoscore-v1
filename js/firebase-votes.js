@@ -397,9 +397,31 @@
 
       // Use the auth-only instance (no App Check) for RecaptchaVerifier AND signInWithPhoneNumber.
       // The RecaptchaVerifier MUST be created and used with the SAME auth instance.
-      // After OTP confirm(), we extract the PhoneAuthProvider credential and cross-sign
-      // into this.auth (App Check-enabled) so Firestore operations stay authenticated.
+      // After OTP confirm(), we directly set uid/authProvider so Firestore writes still work.
       const authForPhone = this.resolveAuthOnlyApp();
+
+      // Firebase Auth SDK v10.12.2 requires _agentRecaptchaConfig before RecaptchaVerifier
+      // can be instantiated. This config is populated by initializeRecaptchaConfig() which
+      // fetches the project's reCAPTCHA settings from the backend. Call it now and wait.
+      try {
+        if (typeof authForPhone.initializeRecaptchaConfig === "function") {
+          await authForPhone.initializeRecaptchaConfig();
+        } else if (authForPhone._delegate && typeof authForPhone._delegate.initializeRecaptchaConfig === "function") {
+          await authForPhone._delegate.initializeRecaptchaConfig();
+        }
+      } catch (rcInitErr) {
+        // initializeRecaptchaConfig may fail if the project doesn't have reCAPTCHA Enterprise
+        // configured in Identity Platform. In that case, patch _agentRecaptchaConfig with a
+        // minimal sentinel so RecaptchaVerifier can proceed with standard reCAPTCHA v2.
+        console.warn("CamppVotes: initializeRecaptchaConfig failed, applying fallback:", rcInitErr);
+        try {
+          const delegate = authForPhone._delegate || authForPhone;
+          if (delegate && delegate._agentRecaptchaConfig === null || delegate._agentRecaptchaConfig === undefined) {
+            // Sentinel: empty config object signals "no Enterprise enforcement" to the SDK.
+            delegate._agentRecaptchaConfig = { siteKey: "", emailPasswordEnabled: false, phoneEnforcementState: "OFF" };
+          }
+        } catch (_) { }
+      }
 
       const mode = String(opts.recaptchaMode || "invisible").toLowerCase();
       const verifier = this.getOrCreateRecaptchaVerifier(opts.recaptchaContainerId, {
@@ -407,6 +429,7 @@
         forceReset: !!opts.forceRecaptchaReset,
         authOverride: authForPhone
       });
+
 
       try {
         this.phoneConfirmationResult = await authForPhone.signInWithPhoneNumber(normalizedPhone, verifier);
