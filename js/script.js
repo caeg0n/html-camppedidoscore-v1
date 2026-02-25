@@ -98,16 +98,27 @@ function ensurePhoneAuthModal() {
         <p class="mx-auto mt-3 max-w-[340px] text-sm text-slate-600" data-phone-auth-message="1"></p>
       </div>
       <div class="px-6 pb-3">
-        <div class="relative" data-phone-auth-input-wrap="1">
-          <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-            <span class="material-symbols-outlined text-[20px]">smartphone</span>
+        <div class="flex gap-2" data-phone-auth-input-wrap="1">
+          <div class="relative min-w-[112px]">
+            <select data-phone-auth-ddi="1" class="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20">
+              <option value="+55">🇧🇷 +55</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+34">🇪🇸 +34</option>
+              <option value="+49">🇩🇪 +49</option>
+            </select>
           </div>
-          <input
-            type="text"
-            data-phone-auth-input="1"
-            class="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-            autocomplete="off"
-          />
+          <div class="relative flex-1">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+              <span class="material-symbols-outlined text-[20px]">smartphone</span>
+            </div>
+            <input
+              type="text"
+              data-phone-auth-input="1"
+              class="h-12 w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+              autocomplete="off"
+            />
+          </div>
         </div>
         <p class="mt-3 flex items-center gap-1.5 text-xs text-slate-500" data-phone-auth-phone-hint="1">
           <span class="material-symbols-outlined text-[14px]">sms</span>
@@ -172,6 +183,7 @@ function openPhoneAuthModal(options) {
   const iconEl = modal.querySelector('[data-phone-auth-icon="1"]');
   const messageEl = modal.querySelector('[data-phone-auth-message="1"]');
   const inputEl = modal.querySelector('[data-phone-auth-input="1"]');
+  const ddiEl = modal.querySelector('[data-phone-auth-ddi="1"]');
   const inputWrapEl = modal.querySelector('[data-phone-auth-input-wrap="1"]');
   const phoneHintEl = modal.querySelector('[data-phone-auth-phone-hint="1"]');
   const otpWrapEl = modal.querySelector('[data-phone-auth-otp-wrap="1"]');
@@ -186,7 +198,7 @@ function openPhoneAuthModal(options) {
   const okLabelEl = modal.querySelector('[data-phone-auth-ok-label="1"]');
   const backdropEl = modal.querySelector('[data-phone-auth-backdrop="1"]');
 
-  if (!titleEl || !stepLabelEl || !iconEl || !messageEl || !inputEl || !inputWrapEl || !phoneHintEl || !otpWrapEl || otpDigits.length !== PHONE_OTP_DIGITS || !resendTextEl || !resendCountdownEl || !resendEl || !changePhoneEl || !errorEl || !cancelEl || !okEl || !okLabelEl || !backdropEl) {
+  if (!titleEl || !stepLabelEl || !iconEl || !messageEl || !inputEl || !ddiEl || !inputWrapEl || !phoneHintEl || !otpWrapEl || otpDigits.length !== PHONE_OTP_DIGITS || !resendTextEl || !resendCountdownEl || !resendEl || !changePhoneEl || !errorEl || !cancelEl || !okEl || !okLabelEl || !backdropEl) {
     return Promise.resolve(null);
   }
 
@@ -199,6 +211,7 @@ function openPhoneAuthModal(options) {
   inputEl.value = opts.defaultValue || '';
   inputEl.type = opts.inputType || 'text';
   inputEl.inputMode = opts.inputMode || 'text';
+  ddiEl.value = opts.defaultDdi || '+55';
   inputWrapEl.classList.toggle('hidden', isOtpMode);
   phoneHintEl.classList.toggle('hidden', isOtpMode);
   otpWrapEl.classList.toggle('hidden', !isOtpMode);
@@ -259,7 +272,13 @@ function openPhoneAuthModal(options) {
     const onOk = () => {
       const rawValue = isOtpMode
         ? otpDigits.map((el) => toDigitsOnly(el.value).slice(-1)).join('')
-        : inputEl.value;
+        : (() => {
+          const rawInput = String(inputEl.value || '').trim();
+          if (!rawInput) return '';
+          if (rawInput.startsWith('+')) return rawInput;
+          const ddi = String(ddiEl.value || '+55').trim();
+          return `${ddi}${toDigitsOnly(rawInput)}`;
+        })();
       const normalized = normalize(rawValue);
       if (!validate(normalized)) {
         errorEl.textContent = opts.invalidMessage || 'Preencha um valor válido.';
