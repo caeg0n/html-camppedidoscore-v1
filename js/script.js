@@ -428,7 +428,7 @@ function getPhoneAuthErrorMessage(err) {
     const loadedKey = String(window.CAMPP_FIREBASE_CONFIG?.apiKey || '').trim();
     const keyTail = loadedKey ? loadedKey.slice(-6) : '(vazio)';
     const origin = String(window.location?.origin || '(sem-origin)');
-    return `API key Firebase invalida para este app. Chave carregada termina com ${keyTail}. Origem atual: ${origin}. Se a chave estiver correta, habilite Billing do Google Cloud para Phone Auth SMS.`;
+    return `Falha no desafio de verificacao do telefone (reCAPTCHA/app credential). Chave carregada termina com ${keyTail}. Origem atual: ${origin}.`;
   }
   if (code.includes('invalid-phone-number')) return 'Numero de telefone invalido.';
   if (code.includes('invalid-verification-code')) return 'Codigo SMS invalido.';

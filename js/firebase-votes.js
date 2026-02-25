@@ -53,6 +53,37 @@
     return err;
   }
 
+  function shouldRetryWithVisibleRecaptcha(err) {
+    if (!err) return false;
+    const code = String(err.code || "").toLowerCase();
+    const message = String(err.message || "").toLowerCase();
+    const details = code + " " + message;
+    return (
+      details.indexOf("invalid-api-key") >= 0 ||
+      details.indexOf("captcha-check-failed") >= 0 ||
+      details.indexOf("recaptcha") >= 0 ||
+      details.indexOf("invalid-app-credential") >= 0 ||
+      details.indexOf("missing-app-credential") >= 0 ||
+      details.indexOf("malformed") >= 0
+    );
+  }
+
+  function hideRecaptchaContainerById(containerId) {
+    const id = String(containerId || "").trim();
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.position = "fixed";
+    el.style.left = "-9999px";
+    el.style.top = "-9999px";
+    el.style.transform = "";
+    el.style.zIndex = "";
+    el.style.background = "";
+    el.style.padding = "";
+    el.style.borderRadius = "";
+    el.style.boxShadow = "";
+  }
+
   const CamppVotes = {
     ready: false,
     appKey: "",
@@ -227,9 +258,13 @@
         .doc("aggregate");
     },
 
-    getOrCreateRecaptchaVerifier(containerId) {
+    getOrCreateRecaptchaVerifier(containerId, options) {
+      const opts = options || {};
       if (!this.auth) {
         throw new Error("Firebase auth is not initialized");
+      }
+      if (opts.forceReset) {
+        this.clearRecaptchaVerifier();
       }
       if (this.recaptchaVerifier) {
         return this.recaptchaVerifier;
@@ -244,14 +279,33 @@
       if (!el) {
         el = document.createElement("div");
         el.id = targetId;
-        el.style.position = "fixed";
-        el.style.left = "-9999px";
-        el.style.top = "-9999px";
         document.body.appendChild(el);
       }
 
+      if (opts.size === "normal") {
+        el.style.position = "fixed";
+        el.style.left = "50%";
+        el.style.top = "50%";
+        el.style.transform = "translate(-50%, -50%)";
+        el.style.zIndex = "9999";
+        el.style.background = "rgba(255,255,255,0.98)";
+        el.style.padding = "10px";
+        el.style.borderRadius = "12px";
+        el.style.boxShadow = "0 10px 30px rgba(0,0,0,.25)";
+      } else {
+        el.style.position = "fixed";
+        el.style.left = "-9999px";
+        el.style.top = "-9999px";
+        el.style.transform = "";
+        el.style.zIndex = "";
+        el.style.background = "";
+        el.style.padding = "";
+        el.style.borderRadius = "";
+        el.style.boxShadow = "";
+      }
+
       this.recaptchaVerifier = new authNs.RecaptchaVerifier(targetId, {
-        size: "invisible"
+        size: opts.size === "normal" ? "normal" : "invisible"
       }, this.auth);
       return this.recaptchaVerifier;
     },
@@ -311,10 +365,34 @@
         return nativeResult;
       }
 
-      const verifier = this.getOrCreateRecaptchaVerifier(opts.recaptchaContainerId);
-      this.phoneConfirmationResult = await this.auth.signInWithPhoneNumber(normalizedPhone, verifier);
-      this.phoneVerificationId = "";
-      return { codeSent: true, source: "web" };
+      const mode = String(opts.recaptchaMode || "invisible").toLowerCase();
+      const verifier = this.getOrCreateRecaptchaVerifier(opts.recaptchaContainerId, {
+        size: mode === "visible" ? "normal" : "invisible",
+        forceReset: !!opts.forceRecaptchaReset
+      });
+
+      try {
+        this.phoneConfirmationResult = await this.auth.signInWithPhoneNumber(normalizedPhone, verifier);
+        this.phoneVerificationId = "";
+        if (mode === "visible") {
+          hideRecaptchaContainerById(opts.recaptchaContainerId || "campp-phone-recaptcha-visible");
+        }
+        return { codeSent: true, source: mode === "visible" ? "web-visible" : "web" };
+      } catch (err) {
+        if (mode !== "visible" && !opts.disableVisibleRecaptchaFallback && shouldRetryWithVisibleRecaptcha(err)) {
+          this.clearRecaptchaVerifier();
+          const visibleContainerId = opts.visibleRecaptchaContainerId || "campp-phone-recaptcha-visible";
+          const visibleVerifier = this.getOrCreateRecaptchaVerifier(visibleContainerId, {
+            size: "normal",
+            forceReset: true
+          });
+          this.phoneConfirmationResult = await this.auth.signInWithPhoneNumber(normalizedPhone, visibleVerifier);
+          this.phoneVerificationId = "";
+          hideRecaptchaContainerById(visibleContainerId);
+          return { codeSent: true, source: "web-visible-fallback" };
+        }
+        throw err;
+      }
     },
 
     async confirmPhoneChallenge(code) {
@@ -362,6 +440,19 @@
     clearPhoneChallenge() {
       this.phoneConfirmationResult = null;
       this.phoneVerificationId = "";
+    },
+
+    clearRecaptchaVerifier() {
+      if (this.recaptchaVerifier) {
+        try {
+          if (typeof this.recaptchaVerifier.clear === "function") {
+            this.recaptchaVerifier.clear();
+          }
+        } catch (_) {}
+      }
+      this.recaptchaVerifier = null;
+      hideRecaptchaContainerById("campp-phone-recaptcha");
+      hideRecaptchaContainerById("campp-phone-recaptcha-visible");
     },
 
     assertCanVote() {
