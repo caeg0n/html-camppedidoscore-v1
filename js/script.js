@@ -422,13 +422,30 @@ function openPhoneAuthModal(options) {
 
 function getPhoneAuthErrorMessage(err) {
   const code = String(err?.code || '').toLowerCase();
+  const message = String(err?.message || '').toLowerCase();
+  const details = `${code} ${message}`;
   if (code.includes('invalid-phone-number')) return 'Numero de telefone invalido.';
   if (code.includes('invalid-verification-code')) return 'Codigo SMS invalido.';
   if (code.includes('code-expired')) return 'Codigo expirado. Solicite outro codigo.';
   if (code.includes('too-many-requests')) return 'Muitas tentativas. Aguarde e tente novamente.';
-  if (code.includes('captcha-check-failed')) return 'Falha de verificacao reCAPTCHA. Tente novamente.';
+  if (details.includes('captcha-check-failed') || details.includes('recaptcha')) {
+    return 'Falha de verificacao reCAPTCHA/App Check. Verifique dominio, chave e App Check e tente novamente.';
+  }
+  if (details.includes('invalid-app-credential') || details.includes('app-not-authorized')) {
+    return 'App nao autorizado para Phone Auth. Confirme App Check, dominio autorizado e configuracao Firebase do app.';
+  }
+  if (details.includes('operation-not-allowed') || details.includes('phone provider is not enabled')) {
+    return 'Phone Auth nao esta habilitado neste projeto Firebase.';
+  }
+  if (details.includes('quota-exceeded')) {
+    return 'Limite de SMS excedido no Firebase. Tente novamente mais tarde.';
+  }
+  if (details.includes('network-request-failed')) {
+    return 'Falha de rede ao validar telefone. Verifique a conexao e tente novamente.';
+  }
   if (code.includes('phone-auth-required')) return 'Login por telefone obrigatorio para votar.';
-  return 'Falha na verificacao por telefone. Tente novamente.';
+  if (code) return `Falha na verificacao por telefone (${code}).`;
+  return 'Falha na verificacao por telefone. Veja o log do console para detalhes.';
 }
 
 async function ensurePhoneIdentityForVote(orgId) {
