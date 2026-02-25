@@ -20,6 +20,8 @@ let renderOrganizationsQueued = false;
 let votesInitResolved = false;
 let safeAreaListenersBound = false;
 const PHONE_OTP_DIGITS = 6;
+let phoneAuthModalEl = null;
+let phoneAuthModalResolver = null;
 
 const MAX_NAV_SAFE_INSET_PX = 96;
 const MAX_TOP_SAFE_INSET_PX = 72;
@@ -61,6 +63,144 @@ function normalizeOtpCode(rawValue) {
   return digits;
 }
 
+function ensurePhoneAuthModal() {
+  if (phoneAuthModalEl) return phoneAuthModalEl;
+
+  const modal = document.createElement('div');
+  modal.id = 'campp-phone-auth-modal';
+  modal.className = 'fixed inset-0 z-[120] hidden items-center justify-center px-4';
+  modal.innerHTML = `
+    <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-[1px]" data-phone-auth-backdrop="1"></div>
+    <div class="relative z-[121] w-full max-w-sm rounded-xl border border-slate-700/70 bg-slate-900 text-slate-100 shadow-2xl shadow-black/40">
+      <div class="px-5 pt-5 pb-3">
+        <h3 class="text-base font-semibold" data-phone-auth-title="1">Confirmar telefone</h3>
+        <p class="mt-2 text-sm text-slate-300" data-phone-auth-message="1"></p>
+      </div>
+      <div class="px-5 pb-2">
+        <input
+          type="text"
+          data-phone-auth-input="1"
+          class="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-red-500 focus:outline-none"
+          autocomplete="off"
+        />
+        <p class="mt-2 min-h-[18px] text-xs text-red-300" data-phone-auth-error="1"></p>
+      </div>
+      <div class="flex items-center justify-end gap-2 border-t border-slate-700/70 px-4 py-3">
+        <button type="button" data-phone-auth-cancel="1" class="rounded-md px-3 py-2 text-sm text-slate-300 hover:bg-slate-800">Cancelar</button>
+        <button type="button" data-phone-auth-ok="1" class="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500">Continuar</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  phoneAuthModalEl = modal;
+  return modal;
+}
+
+function closePhoneAuthModal(result) {
+  if (!phoneAuthModalEl) return;
+  phoneAuthModalEl.classList.add('hidden');
+  phoneAuthModalEl.classList.remove('flex');
+
+  const resolver = phoneAuthModalResolver;
+  phoneAuthModalResolver = null;
+  if (resolver) resolver(result);
+}
+
+function openPhoneAuthModal(options) {
+  const modal = ensurePhoneAuthModal();
+  const opts = options || {};
+
+  const titleEl = modal.querySelector('[data-phone-auth-title="1"]');
+  const messageEl = modal.querySelector('[data-phone-auth-message="1"]');
+  const inputEl = modal.querySelector('[data-phone-auth-input="1"]');
+  const errorEl = modal.querySelector('[data-phone-auth-error="1"]');
+  const cancelEl = modal.querySelector('[data-phone-auth-cancel="1"]');
+  const okEl = modal.querySelector('[data-phone-auth-ok="1"]');
+  const backdropEl = modal.querySelector('[data-phone-auth-backdrop="1"]');
+
+  if (!titleEl || !messageEl || !inputEl || !errorEl || !cancelEl || !okEl || !backdropEl) {
+    return Promise.resolve(null);
+  }
+
+  titleEl.textContent = opts.title || 'Confirmar telefone';
+  messageEl.textContent = opts.message || '';
+  inputEl.placeholder = opts.placeholder || '';
+  inputEl.value = opts.defaultValue || '';
+  inputEl.type = opts.inputType || 'text';
+  inputEl.inputMode = opts.inputMode || 'text';
+  if (opts.maxLength && Number.isFinite(opts.maxLength)) {
+    inputEl.maxLength = opts.maxLength;
+  } else {
+    inputEl.removeAttribute('maxLength');
+  }
+  okEl.textContent = opts.confirmLabel || 'Continuar';
+  cancelEl.textContent = opts.cancelLabel || 'Cancelar';
+  errorEl.textContent = '';
+
+  const normalize = typeof opts.normalize === 'function'
+    ? opts.normalize
+    : (value) => String(value || '').trim();
+  const validate = typeof opts.validate === 'function'
+    ? opts.validate
+    : (value) => !!value;
+
+  return new Promise((resolve) => {
+    if (phoneAuthModalResolver) {
+      phoneAuthModalResolver(null);
+      phoneAuthModalResolver = null;
+    }
+    phoneAuthModalResolver = resolve;
+
+    const cleanup = () => {
+      okEl.removeEventListener('click', onOk);
+      cancelEl.removeEventListener('click', onCancel);
+      backdropEl.removeEventListener('click', onCancel);
+      inputEl.removeEventListener('keydown', onKeyDown);
+    };
+
+    const done = (value) => {
+      cleanup();
+      closePhoneAuthModal(value);
+    };
+
+    const onCancel = () => done(null);
+
+    const onOk = () => {
+      const normalized = normalize(inputEl.value);
+      if (!validate(normalized)) {
+        errorEl.textContent = opts.invalidMessage || 'Preencha um valor válido.';
+        inputEl.focus();
+        return;
+      }
+      done(normalized);
+    };
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        onOk();
+      }
+    };
+
+    okEl.addEventListener('click', onOk);
+    cancelEl.addEventListener('click', onCancel);
+    backdropEl.addEventListener('click', onCancel);
+    inputEl.addEventListener('keydown', onKeyDown);
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    setTimeout(() => {
+      inputEl.focus();
+      inputEl.select();
+    }, 0);
+  });
+}
+
 function getPhoneAuthErrorMessage(err) {
   const code = String(err?.code || '').toLowerCase();
   if (code.includes('invalid-phone-number')) return 'Numero de telefone invalido.';
@@ -80,8 +220,16 @@ async function ensurePhoneIdentityForVote(orgId) {
   const autoHint = window.CamppVotes.supportsNativePhoneAutoFill()
     ? ' O app tentara preencher o codigo automaticamente via SMS.'
     : '';
-  const phoneInput = window.prompt(`Para votar, confirme seu telefone com DDI (ex: +5511999999999).${autoHint}`, '');
-  const phoneNumber = normalizePhoneE164(phoneInput);
+  const phoneNumber = await openPhoneAuthModal({
+    title: 'Confirmar telefone',
+    message: `Para votar, confirme seu telefone com DDI (ex: +5511999999999).${autoHint}`,
+    placeholder: '+5511999999999',
+    inputType: 'tel',
+    inputMode: 'tel',
+    normalize: normalizePhoneE164,
+    validate: (value) => !!value,
+    invalidMessage: 'Informe um telefone válido com DDI.'
+  });
   if (!phoneNumber) return false;
 
   setOrgVotePending(orgId, true, 'Enviando codigo SMS...');
@@ -102,8 +250,18 @@ async function ensurePhoneIdentityForVote(orgId) {
     return true;
   }
 
-  const codeInput = window.prompt('Digite o codigo de verificacao SMS (6 digitos):', '');
-  const otpCode = normalizeOtpCode(codeInput);
+  const otpCode = await openPhoneAuthModal({
+    title: 'Código SMS',
+    message: `Digite o código de verificação com ${PHONE_OTP_DIGITS} dígitos.`,
+    placeholder: '000000',
+    inputType: 'tel',
+    inputMode: 'numeric',
+    maxLength: PHONE_OTP_DIGITS,
+    confirmLabel: 'Verificar',
+    normalize: normalizeOtpCode,
+    validate: (value) => !!value && value.length === PHONE_OTP_DIGITS,
+    invalidMessage: `Digite ${PHONE_OTP_DIGITS} dígitos.`
+  });
   if (!otpCode || otpCode.length < PHONE_OTP_DIGITS) {
     window.CamppVotes.clearPhoneChallenge();
     return false;
