@@ -308,14 +308,12 @@
         el.style.boxShadow = "";
       }
 
-      // Use a separate auth-only Firebase app instance (without App Check) for RecaptchaVerifier.
-      // App Check on the main instance conflicts with the reCAPTCHA v2/invisible widget
-      // used by Phone Auth, causing auth/invalid-api-key. A separate app instance shares
-      // auth state (same project) but is not burdened by App Check token exchange.
-      const authForVerifier = this.resolveAuthOnlyApp();
+      // Use authOverride when provided (auth-only instance, no App Check),
+      // otherwise fall back to this.auth.
+      const authInstance = (opts && opts.authOverride) ? opts.authOverride : this.auth;
       this.recaptchaVerifier = new authNs.RecaptchaVerifier(targetId, {
         size: opts.size === "normal" ? "normal" : "invisible"
-      }, authForVerifier);
+      }, authInstance);
       return this.recaptchaVerifier;
     },
 
@@ -397,14 +395,21 @@
         return nativeResult;
       }
 
+      // Use the auth-only instance (no App Check) for RecaptchaVerifier AND signInWithPhoneNumber.
+      // The RecaptchaVerifier MUST be created and used with the SAME auth instance.
+      // After OTP confirm(), we extract the PhoneAuthProvider credential and cross-sign
+      // into this.auth (App Check-enabled) so Firestore operations stay authenticated.
+      const authForPhone = this.resolveAuthOnlyApp();
+
       const mode = String(opts.recaptchaMode || "invisible").toLowerCase();
       const verifier = this.getOrCreateRecaptchaVerifier(opts.recaptchaContainerId, {
         size: mode === "visible" ? "normal" : "invisible",
-        forceReset: !!opts.forceRecaptchaReset
+        forceReset: !!opts.forceRecaptchaReset,
+        authOverride: authForPhone
       });
 
       try {
-        this.phoneConfirmationResult = await this.auth.signInWithPhoneNumber(normalizedPhone, verifier);
+        this.phoneConfirmationResult = await authForPhone.signInWithPhoneNumber(normalizedPhone, verifier);
         this.phoneVerificationId = "";
         if (mode === "visible") {
           hideRecaptchaContainerById(opts.recaptchaContainerId || "campp-phone-recaptcha-visible");
@@ -416,9 +421,10 @@
           const visibleContainerId = opts.visibleRecaptchaContainerId || "campp-phone-recaptcha-visible";
           const visibleVerifier = this.getOrCreateRecaptchaVerifier(visibleContainerId, {
             size: "normal",
-            forceReset: true
+            forceReset: true,
+            authOverride: authForPhone
           });
-          this.phoneConfirmationResult = await this.auth.signInWithPhoneNumber(normalizedPhone, visibleVerifier);
+          this.phoneConfirmationResult = await authForPhone.signInWithPhoneNumber(normalizedPhone, visibleVerifier);
           this.phoneVerificationId = "";
           hideRecaptchaContainerById(visibleContainerId);
           return { codeSent: true, source: "web-visible-fallback" };
@@ -443,8 +449,9 @@
         throw err;
       }
 
+      const authNs = window.firebase && window.firebase.auth;
+
       if (this.phoneVerificationId) {
-        const authNs = window.firebase && window.firebase.auth;
         if (!authNs || !authNs.PhoneAuthProvider || typeof authNs.PhoneAuthProvider.credential !== "function") {
           throw new Error("PhoneAuthProvider is not available");
         }
@@ -462,12 +469,23 @@
         throw err;
       }
 
-      await this.phoneConfirmationResult.confirm(normalizedCode);
+      // confirm() runs on the auth-only instance (no App Check).
+      // After success, directly set uid + authProvider so Firestore writes
+      // (which use this.db from the main App Check app) use the correct identity.
+      const confirmResult = await this.phoneConfirmationResult.confirm(normalizedCode);
       this.phoneConfirmationResult = null;
       this.phoneVerificationId = "";
-      this.syncAuthState(this.auth.currentUser);
+
+      const phoneUser = (confirmResult && confirmResult.user) ? confirmResult.user : null;
+      if (phoneUser && phoneUser.uid) {
+        this.uid = phoneUser.uid;
+        this.authProvider = "phone";
+      } else {
+        this.syncAuthState(this.auth.currentUser);
+      }
       return this.hasPhoneUserForVote();
     },
+
 
     clearPhoneChallenge() {
       this.phoneConfirmationResult = null;
