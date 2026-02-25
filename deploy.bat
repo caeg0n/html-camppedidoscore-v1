@@ -322,6 +322,7 @@ del /q "%TEMP%\gh_pages.json" >nul 2>nul
 
 echo.
 echo [11/11] Publicacao concluida.
+echo Versao publicada: v!BUILD_VER!
 if not "%DOMAIN%"=="" (
   echo URL final apos DNS: https://%DOMAIN%/
   echo.
