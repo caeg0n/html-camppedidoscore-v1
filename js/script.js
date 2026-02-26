@@ -33,6 +33,14 @@ function hasFirebaseVoteConfig() {
   return !!(cfg && cfg.apiKey && cfg.projectId && cfg.appId);
 }
 
+function shouldExpectRemoteVotes() {
+  if (!hasFirebaseVoteConfig()) return false;
+  // While init is pending, keep remote expectation to avoid flicker.
+  if (!votesInitResolved) return true;
+  // After init, only expect remote if provider is actually available.
+  return voteProviderReady && !remoteVotesDisabled;
+}
+
 function scheduleOrganizationsRender() {
   if (renderOrganizationsQueued) return;
   renderOrganizationsQueued = true;
@@ -174,7 +182,7 @@ function isOrgUserVoteLoading(orgId) {
 
 function isOrgVoteInteractionReady(orgId) {
   if (!orgId) return false;
-  if (hasFirebaseVoteConfig() && !voteProviderReady) return false;
+  if (shouldExpectRemoteVotes() && !voteProviderReady) return false;
   return !isOrgUserVoteLoading(orgId);
 }
 
@@ -440,7 +448,7 @@ function getRatingStats(org) {
   const baseRating = parseFloat(org.rating) || 0;
   const baseCount = parseReviewsCount(org.reviews);
   const summary = getOrgSummary(org.id);
-  const preferRemoteVotes = hasFirebaseVoteConfig();
+  const preferRemoteVotes = shouldExpectRemoteVotes();
 
   const hasLiveSummary = !!(voteProviderReady && summary && typeof summary === 'object');
   const liveCount = hasLiveSummary ? (summary.count || 0) : 0;
@@ -517,6 +525,7 @@ async function initializeVotes() {
   }
 
   if (!voteProviderReady) {
+    remoteVotesDisabled = true;
     userVotesCache = getLocalVotes();
   }
 }
@@ -921,7 +930,7 @@ function renderRatingBadge(org) {
 
   const summary = getOrgSummary(org.id);
   const hasLiveSummary = !!(shouldUseRemoteVoteData() && summary && typeof summary === 'object');
-  if (hasFirebaseVoteConfig() && !hasLiveSummary) {
+  if (shouldExpectRemoteVotes() && !hasLiveSummary) {
     return `
       <div class="flex w-full sm:w-auto min-w-0 sm:min-w-[160px] items-center justify-start sm:justify-end gap-2 rounded-lg bg-slate-100/60 px-2 py-1 text-slate-400 dark:bg-slate-800/50 dark:text-slate-500" aria-live="polite">
         <span class="material-symbols-outlined text-[15px]">info</span>
@@ -968,7 +977,7 @@ function renderVoteWidget(orgId) {
     `;
   }
 
-  if (hasFirebaseVoteConfig() && !voteProviderReady) {
+  if (hasFirebaseVoteConfig() && !voteProviderReady && !remoteVotesDisabled) {
     return `
       <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
         <span>Avaliação indisponível</span>
@@ -1251,7 +1260,7 @@ async function submitVote(orgId, stars) {
     }
   }
 
-  if (hasFirebaseVoteConfig()) {
+  if (hasFirebaseVoteConfig() && !remoteVotesDisabled) {
     return;
   }
 
@@ -1283,7 +1292,7 @@ async function clearUserVote(orgId) {
     }
   }
 
-  if (hasFirebaseVoteConfig()) {
+  if (hasFirebaseVoteConfig() && !remoteVotesDisabled) {
     return;
   }
 
