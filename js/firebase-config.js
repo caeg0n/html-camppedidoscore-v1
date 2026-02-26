@@ -4,10 +4,10 @@
   projectId: "camp-pedidos",
   storageBucket: "camp-pedidos.firebasestorage.app",
   messagingSenderId: "47375572573",
-  appId: "1:47375572573:web:8b5ddb9a6f0e44405477b4",
+  appId: "1:47375572573:web:0ba9fe67e349328e5477b4",
   measurementId: ""
 };
 
-window.CAMPP_APP_CHECK_SITE_KEY = "6LdWXHQsAAAAAPwpjtaIpfJh_5egu_l-imRIGIbi";
+window.CAMPP_APP_CHECK_SITE_KEY = "6Lfi5XcsAAAAAGymqsG45Rd2RyMvKXHzO8EAjxOE";
 window.CAMPP_APP_KEY = "html-camppedidoscore-v1";
 
