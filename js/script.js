@@ -425,6 +425,18 @@ function isFirestoreOfflineError(err) {
   );
 }
 
+function isVoteIntegrityError(err) {
+  if (!err) return false;
+  const code = String(err.code || '').toLowerCase();
+  const message = String(err.message || '').toLowerCase();
+  return (
+    code.includes('failed-precondition') ||
+    code.includes('permission-denied') ||
+    message.includes('app check') ||
+    message.includes('appcheck')
+  );
+}
+
 function disableRemoteVotes(err) {
   voteProviderReady = false;
   globalVoteSummary = {};
@@ -1251,6 +1263,8 @@ async function submitVote(orgId, stars) {
     } catch (err) {
       if (isFirestoreOfflineError(err)) {
         disableRemoteVotes(err);
+      } else if (isVoteIntegrityError(err)) {
+        alert('Voto bloqueado por verificacao de seguranca (App Check/Integridade). Atualize o app e tente novamente.');
       } else {
         console.error('Remote vote failed:', err);
       }
@@ -1283,6 +1297,8 @@ async function clearUserVote(orgId) {
     } catch (err) {
       if (isFirestoreOfflineError(err)) {
         disableRemoteVotes(err);
+      } else if (isVoteIntegrityError(err)) {
+        alert('Remocao de voto bloqueada por verificacao de seguranca (App Check/Integridade).');
       } else {
         console.error('Remote clear vote failed:', err);
       }
